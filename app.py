@@ -1,5 +1,7 @@
+import streamlit as st
 import numpy as np
-from PIL import Image
+import plotly.graph_objects as go
+from PIL import Image  # ← esta línea es clave
 # Cargar textura de alta resolución
 img = Image.open("earth_texture.jpg").resize((200, 100))
 img_array = np.array(img) / 255.0
