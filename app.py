@@ -69,3 +69,4 @@ fig.add_trace(go.Surface(
     showscale=False,
     name='Tierra'
 ))
+st.plotly_chart(fig, use_container_width=True)
