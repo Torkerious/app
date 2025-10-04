@@ -1,3 +1,4 @@
+import numpy as np
 from PIL import Image
 # Cargar textura de alta resolución
 img = Image.open("earth_texture.jpg").resize((200, 100))
