@@ -55,6 +55,17 @@ ze = r * np.cos(theta)
 
 fig = go.Figure()
 
+fig.update_layout(
+    scene=dict(
+        xaxis=dict(range=[-9000, 9000]),
+        yaxis=dict(range=[-9000, 9000]),
+        zaxis=dict(range=[-9000, 9000]),
+        aspectmode='manual',
+        aspectratio=dict(x=1, y=1, z=1)
+    ),
+    margin=dict(l=0, r=0, b=0, t=0)
+)
+
 #st.write("x shape:", xe.shape)
 #st.write("y shape:", ye.shape)
 #st.write("z shape:", ze.shape)
