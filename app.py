@@ -1,18 +1,21 @@
-import streamlit as st
+from PIL import Image
 import numpy as np
 import plotly.graph_objects as go
-from PIL import Image
+import streamlit as st
 
 st.set_page_config(layout="wide")
-st.title("🌍 Modelo 3D de la Tierra con Textura Simulada")
+st.title("🌍 Tierra con Textura Mejorada")
 
-# Cargar imagen de textura
+# Cargar imagen
 img = Image.open("earth_texture.jpg").resize((100, 50))
-img = np.array(img) / 255.0  # Normalizar
+img_array = np.array(img) / 255.0
+
+# Usar canal azul como base
+surfacecolor = img_array[:, :, 2].T  # Transponer para que coincida
 
 # Coordenadas esféricas
-theta = np.linspace(0, np.pi, img.shape[0])
-phi = np.linspace(0, 2 * np.pi, img.shape[1])
+theta = np.linspace(0, np.pi, surfacecolor.shape[0])
+phi = np.linspace(0, 2 * np.pi, surfacecolor.shape[1])
 theta, phi = np.meshgrid(theta, phi)
 r = 6371
 
@@ -20,19 +23,17 @@ x = r * np.sin(theta) * np.cos(phi)
 y = r * np.sin(theta) * np.sin(phi)
 z = r * np.cos(theta)
 
-# Simular textura con promedio de RGB
-surfacecolor = np.mean(img, axis=2).T  # Transponer para que coincida
-
+# Visualización
 fig = go.Figure(data=[go.Surface(
     x=x, y=y, z=z,
     surfacecolor=surfacecolor,
-    colorscale='Earth',  # Usa una escala de color parecida
+    colorscale='Earth',
     cmin=0, cmax=1,
     showscale=False
 )])
 
 fig.update_layout(
-    title='🌍 Tierra con Textura Simulada',
+    title='🌍 Tierra con Textura Realista',
     scene=dict(
         xaxis_title='X (km)',
         yaxis_title='Y (km)',
