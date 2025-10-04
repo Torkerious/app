@@ -18,6 +18,10 @@ xe = r * np.sin(theta) * np.cos(phi)
 ye = r * np.sin(theta) * np.sin(phi)
 ze = r * np.cos(theta)
 
+st.write("x shape:", x.shape)
+st.write("y shape:", y.shape)
+st.write("z shape:", z.shape)
+st.write("surfacecolor shape:", surfacecolor.shape)
 # Visualización de la Tierra
 fig.add_trace(go.Surface(
     x=xe, y=ye, z=ze,
