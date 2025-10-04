@@ -7,6 +7,11 @@ from PIL import Image  # ← esta línea es clave
 # Ajustar surfacecolor para que coincida con x, y, z
 from scipy.ndimage import zoom
 
+img = Image.open("earth_texture.jpg").resize((200, 100))
+img_array = np.array(img) / 255.0
+img_array = np.flipud(img_array)  # Invertir vertical
+surfacecolor = np.mean(img_array[:, :, :3], axis=2).T  # Promedio RGB
+
 # Escalar surfacecolor a (200, 100)
 surfacecolor = zoom(surfacecolor, (2, 1))  # duplica filas, mantiene columnas
 
