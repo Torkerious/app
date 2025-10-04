@@ -13,7 +13,7 @@ img_array = np.flipud(img_array)  # Invertir vertical
 surfacecolor = np.mean(img_array[:, :, :3], axis=2).T  # Promedio RGB
 
 # Escalar surfacecolor a (200, 100)
-surfacecolor = zoom(surfacecolor, (2, 1))  # duplica filas, mantiene columnas
+#surfacecolor = zoom(surfacecolor, (2, 1))  # duplica filas, mantiene columnas
 
 # Verifica forma final
 st.write("surfacecolor ajustado:", surfacecolor.shape)
