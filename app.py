@@ -16,7 +16,7 @@ surfacecolor = np.mean(img_array[:, :, :3], axis=2).T  # Promedio RGB
 surfacecolor = zoom(surfacecolor, (2, 1))  # duplica filas, mantiene columnas
 
 # Verifica forma final
-st.write("surfacecolor ajustado:", surfacecolor.shape)
+#st.write("surfacecolor ajustado:", surfacecolor.shape)
 
 img = Image.open("earth_texture.jpg").resize((200, 100))
 img_array = np.array(img) / 255.0
