@@ -60,6 +60,7 @@ fig = go.Figure()
 #st.write("z shape:", ze.shape)
 #st.write("surfacecolor shape:", surfacecolor.shape)
 #st.image(img, caption="Textura cargada")
+st.plotly_chart(fig, use_container_width=True)
 # Visualización de la Tierra
 fig.add_trace(go.Surface(
     x=xe, y=ye, z=ze,
