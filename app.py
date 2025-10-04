@@ -26,6 +26,18 @@ surfacecolor = np.mean(img_array[:, :, :3], axis=2)
 
 # Asegurar que surfacecolor tenga la misma forma que x, y, z
 surfacecolor = surfacecolor[:theta.shape[0], :theta.shape[1]]
+
+# Coordenadas esféricas para la Tierra
+theta = np.linspace(0, np.pi, 100)
+phi = np.linspace(0, 2 * np.pi, 200)
+theta, phi = np.meshgrid(theta, phi)
+r = 8000  # Radio visualizado de la Tierra
+
+xe = r * np.sin(theta) * np.cos(phi)
+ye = r * np.sin(theta) * np.sin(phi)
+ze = r * np.cos(theta)
+
+
 fig = go.Figure()
 # Visualización de la Tierra
 fig.add_trace(go.Surface(
