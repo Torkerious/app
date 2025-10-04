@@ -4,13 +4,14 @@ import plotly.graph_objects as go
 import streamlit as st
 
 st.set_page_config(layout="wide")
-st.title("🌍 Tierra con Textura Mejorada")
+st.title("🌍 Tierra con Textura Simulada Mejorada")
 
-# Cargar imagen
+# Cargar imagen y ajustar orientación
 img = Image.open("earth_texture.jpg").resize((100, 50))
 img_array = np.array(img) / 255.0
+img_array = np.flipud(img_array)  # Invertir vertical
 
-# Usar canal azul como base
+# Usar canal azul como mapa de color
 surfacecolor = img_array[:, :, 2].T  # Transponer para que coincida
 
 # Coordenadas esféricas
@@ -27,13 +28,13 @@ z = r * np.cos(theta)
 fig = go.Figure(data=[go.Surface(
     x=x, y=y, z=z,
     surfacecolor=surfacecolor,
-    colorscale='Earth',
+    colorscale='Blues',
     cmin=0, cmax=1,
     showscale=False
 )])
 
 fig.update_layout(
-    title='🌍 Tierra con Textura Realista',
+    title='🌍 Tierra con Textura Simulada Mejorada',
     scene=dict(
         xaxis_title='X (km)',
         yaxis_title='Y (km)',
