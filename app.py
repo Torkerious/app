@@ -4,15 +4,15 @@ import plotly.graph_objects as go
 from PIL import Image
 
 st.set_page_config(layout="wide")
-st.title("🌍 Modelo 3D de la Tierra con Textura")
+st.title("🌍 Modelo 3D de la Tierra con Textura Simulada")
 
-# Cargar textura
-texture = Image.open("earth_texture.jpg")
-texture = np.array(texture.resize((100, 50))) / 255.0  # Normalizar
+# Cargar imagen de textura
+img = Image.open("earth_texture.jpg").resize((100, 50))
+img = np.array(img) / 255.0  # Normalizar
 
 # Coordenadas esféricas
-theta = np.linspace(0, np.pi, 50)
-phi = np.linspace(0, 2 * np.pi, 100)
+theta = np.linspace(0, np.pi, img.shape[0])
+phi = np.linspace(0, 2 * np.pi, img.shape[1])
 theta, phi = np.meshgrid(theta, phi)
 r = 6371
 
@@ -20,24 +20,19 @@ x = r * np.sin(theta) * np.cos(phi)
 y = r * np.sin(theta) * np.sin(phi)
 z = r * np.cos(theta)
 
-# Mapear textura como colores
-colors = texture[:, :, :3]  # RGB
-colors = np.flipud(colors)  # Invertir vertical para que coincida
-
-# Convertir a escala de color Plotly
-surfacecolor = np.mean(colors, axis=2)
+# Simular textura con promedio de RGB
+surfacecolor = np.mean(img, axis=2).T  # Transponer para que coincida
 
 fig = go.Figure(data=[go.Surface(
     x=x, y=y, z=z,
     surfacecolor=surfacecolor,
-    colorscale='gray',
+    colorscale='Earth',  # Usa una escala de color parecida
     cmin=0, cmax=1,
-    showscale=False,
-    opacity=1.0
+    showscale=False
 )])
 
 fig.update_layout(
-    title='🌍 Tierra con Textura Realista',
+    title='🌍 Tierra con Textura Simulada',
     scene=dict(
         xaxis_title='X (km)',
         yaxis_title='Y (km)',
