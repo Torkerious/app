@@ -55,11 +55,11 @@ ze = r * np.cos(theta)
 
 fig = go.Figure()
 
-st.write("x shape:", xe.shape)
-st.write("y shape:", ye.shape)
-st.write("z shape:", ze.shape)
-st.write("surfacecolor shape:", surfacecolor.shape)
-st.image(img, caption="Textura cargada")
+#st.write("x shape:", xe.shape)
+#st.write("y shape:", ye.shape)
+#st.write("z shape:", ze.shape)
+#st.write("surfacecolor shape:", surfacecolor.shape)
+#st.image(img, caption="Textura cargada")
 # Visualización de la Tierra
 fig.add_trace(go.Surface(
     x=xe, y=ye, z=ze,
