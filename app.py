@@ -3,6 +3,16 @@ import numpy as np
 import plotly.graph_objects as go
 from PIL import Image  # ← esta línea es clave
 # Cargar textura de alta resolución
+
+# Ajustar surfacecolor para que coincida con x, y, z
+from scipy.ndimage import zoom
+
+# Escalar surfacecolor a (200, 100)
+surfacecolor = zoom(surfacecolor, (2, 1))  # duplica filas, mantiene columnas
+
+# Verifica forma final
+st.write("surfacecolor ajustado:", surfacecolor.shape)
+
 img = Image.open("earth_texture.jpg").resize((200, 100))
 img_array = np.array(img) / 255.0
 img_array = np.flipud(img_array)  # Invertir vertical
