@@ -26,7 +26,7 @@ surfacecolor = np.mean(img_array[:, :, :3], axis=2)
 
 # Asegurar que surfacecolor tenga la misma forma que x, y, z
 surfacecolor = surfacecolor[:theta.shape[0], :theta.shape[1]]
-
+fig = go.Figure()
 # Visualización de la Tierra
 fig.add_trace(go.Surface(
     x=xe, y=ye, z=ze,
