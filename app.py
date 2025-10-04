@@ -16,7 +16,7 @@ surfacecolor = np.mean(img_array[:, :, :3], axis=2).T  # Promedio RGB
 surfacecolor = zoom(surfacecolor, (2, 1))  # duplica filas, mantiene columnas
 
 # Verifica forma final
-#st.write("surfacecolor ajustado:", surfacecolor.shape)
+st.write("surfacecolor ajustado:", surfacecolor.shape)
 
 img = Image.open("earth_texture.jpg").resize((200, 100))
 img_array = np.array(img) / 255.0
@@ -66,12 +66,12 @@ fig.update_layout(
     margin=dict(l=0, r=0, b=0, t=0)
 )
 
-#st.write("x shape:", xe.shape)
-#st.write("y shape:", ye.shape)
-#st.write("z shape:", ze.shape)
-#st.write("surfacecolor shape:", surfacecolor.shape)
-#st.image(img, caption="Textura cargada")
-#st.plotly_chart(fig, use_container_width=True)
+st.write("x shape:", xe.shape)
+st.write("y shape:", ye.shape)
+st.write("z shape:", ze.shape)
+st.write("surfacecolor shape:", surfacecolor.shape)
+st.image(img, caption="Textura cargada")
+st.plotly_chart(fig, use_container_width=True)
 # Visualización de la Tierra
 fig.add_trace(go.Surface(
     x=xe, y=ye, z=ze,
