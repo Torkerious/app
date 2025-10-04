@@ -72,3 +72,4 @@ fig.add_trace(go.Surface(
 ))
 st.plotly_chart(fig, use_container_width=True, key ='tierra1')
 st.plotly_chart(fig, use_container_width=True, key ='tierra2')
+st.write("surfacecolor min/max:", surfacecolor.min(), surfacecolor.max())
