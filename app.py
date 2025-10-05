@@ -7,7 +7,6 @@ import base64
 MODELO_STL_PATH = "Earth.stl" 
 TEXTURE_URL = "earth_texture.png" 
 
-
 # --- Función para codificar SOLO el STL a Base64 ---
 def get_stl_base64_data_url(file_path):
     """Codifica el STL a una URL de datos Base64."""
@@ -29,7 +28,7 @@ STL_DATA_URL = get_stl_base64_data_url(MODELO_STL_PATH)
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D: Fuerza de Iluminación (DoubleSide) 🌍")
+st.title("Visor 3D: Material Básico (Final) 🎨")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -80,18 +79,7 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 container.appendChild(renderer.domElement);
 
-                // Iluminación robusta (alta intensidad)
-                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.5); 
-                scene.add(ambientLight);
-                
-                const directionalLight1 = new THREE.DirectionalLight(0xFFFFFF, 1.5); 
-                directionalLight1.position.set(100, 100, 100);
-                scene.add(directionalLight1);
-                
-                const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 0.7); 
-                directionalLight2.position.set(-100, -100, -100); 
-                scene.add(directionalLight2);
-
+                // --- ELIMINAMOS TODAS LAS LUCES, MeshBasicMaterial no las necesita ---
 
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.target.set(0, 0, 0); 
@@ -114,10 +102,10 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 stlLoader.load(modelURL, function(geometry) {{
                     geometry.center(); 
                     
-                    // Usar material con textura
-                    const material = new THREE.MeshPhongMaterial({{ 
+                    // --- CAMBIO CLAVE: Usar MeshBasicMaterial (ignora luz y normales) ---
+                    const material = new THREE.MeshBasicMaterial({{ 
                         map: texture, 
-                        side: THREE.DoubleSide, // <--- LA CLAVE PARA LAS NORMALES INVERTIDAS
+                        side: THREE.DoubleSide, 
                         needsUpdate: true 
                     }}); 
 
