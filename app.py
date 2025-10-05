@@ -1,14 +1,34 @@
 import streamlit as st
 import streamlit.components.v1 as components
+import os
+import base64
 
-# --- Rutas de Archivo Simples (Dependen de la configuración de server) ---
-OBJ_URL = "Earth.obj" 
-TEXTURE_URL = "earth_texture.png" 
+# --- Configuración de Rutas de Archivo (STL simple) ---
+MODELO_STL_PATH = "Earth.stl" 
+
+# --- Función para codificar archivos a Base64 ---
+
+def get_base64_data_url(file_path, mime_type):
+    """Codifica un archivo a una URL de datos Base64."""
+    if not os.path.exists(file_path):
+        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró. Asegúrate de que 'Earth.stl' está en la carpeta raíz.")
+        return None
+    try:
+        with open(file_path, 'rb') as f:
+            file_bytes = f.read()
+            encoded = base64.b64encode(file_bytes).decode()
+            return f"data:{mime_type};base64,{encoded}"
+    except Exception as e:
+        st.error(f"❌ Error al codificar {file_path} a Base64: {e}")
+        return None
+
+# Generar la URL Base64 Data (SOLO EL STL)
+STL_DATA_URL = get_base64_data_url(MODELO_STL_PATH, 'application/vnd.ms-pki.stl')
 
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D Final: Archivos Estáticos 🌍")
+st.title("Visor 3D: Carga Mínima (STL Base64) 🔴")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -18,15 +38,17 @@ if 'cube_size' not in st.session_state:
 
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
-def generate_threejs_viewer(obj_url, texture_url, show_cube, cube_size):
+def generate_threejs_viewer(stl_data_url, show_cube, cube_size):
     """
-    Usa la estrategia de carga OBJ y aplica la textura PNG por URL simple.
+    Carga solo la geometría STL con un color simple (sin textura).
     """
+    if stl_data_url is None: return ""
+
     HTML_CODE = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Three.js OBJ Viewer</title>
+        <title>Three.js STL Viewer</title>
         <style>
             body {{ margin: 0; }}
             #container {{ width: 100%; height: 600px; }} 
@@ -37,13 +59,12 @@ def generate_threejs_viewer(obj_url, texture_url, show_cube, cube_size):
         
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-        
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+
         <script>
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
-            const objURL = '{obj_url}';
-            const textureURL = '{texture_url}'; 
+            const modelURL = '{stl_data_url}';
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
             
@@ -69,51 +90,33 @@ def generate_threejs_viewer(obj_url, texture_url, show_cube, cube_size):
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.target.set(0, 0, 0); 
                 
-                const textureLoader = new THREE.TextureLoader();
-                const objLoader = new THREE.OBJLoader();
-                
-                // 1. Cargar Textura con URL directa
-                const texture = textureLoader.load(textureURL, 
-                    undefined, 
-                    function(err) {{
-                        console.error('Error al cargar la textura PNG por URL. Usando color plano.', err);
-                    }}
-                );
-                
-                // 2. Crear Material
-                const material = new THREE.MeshPhongMaterial({{
-                    map: texture,
-                    shininess: 10,
-                    side: THREE.DoubleSide
-                }});
-                
-                // 3. Cargar el OBJ y aplicar el material
-                objLoader.load(objURL, function(object) {{
+                const stlLoader = new THREE.STLLoader();
+
+                // Cargar solo el STL (sin textura)
+                stlLoader.load(modelURL, function(geometry) {{
+                    geometry.center(); 
                     
-                    object.traverse(function(child) {{
-                        if (child.isMesh) {{
-                            child.geometry.center(); 
-                            child.material = material; // Aplica el material con la textura
-                            
-                            // Ajuste de escala
-                            const box = new THREE.Box3().setFromObject(child);
-                            const size = box.getSize(new THREE.Vector3());
-                            const maxDim = Math.max(size.x, size.y, size.z);
-                            const scale = 100 / maxDim;
-                            child.scale.set(scale, scale, scale);
-                        }}
-                    }});
+                    // Usar material simple (color azul)
+                    const material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6, side: THREE.DoubleSide }}); 
+
+                    const mesh = new THREE.Mesh(geometry, material);
                     
-                    scene.add(object);
+                    // Ajuste de escala
+                    const box = new THREE.Box3().setFromObject(mesh);
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 100 / maxDim;
+                    mesh.scale.set(scale, scale, scale);
                     
-                    // Ajustar la cámara
-                    camera.position.set(150, 0, 0); 
+                    scene.add(mesh);
+                    
+                    camera.position.set(maxDim * scale * 1.5, 0, 0); 
                     controls.update();
                     
                 }}, undefined, function(error) {{
-                    console.error('Error CRÍTICO al cargar el OBJ por URL simple.', error);
+                    console.error('Error CRÍTICO al cargar el STL (Base64).', error);
                 }});
-
+                
 
                 // --- Elemento de Experimentación (Cubo) ---
                 if (showCube) {{
@@ -160,10 +163,22 @@ else:
     st.session_state.show_cube = False
 
 
-html_code = generate_threejs_viewer(OBJ_URL, TEXTURE_URL, st.session_state.show_cube, st.session_state.cube_size)
+html_code = generate_threejs_viewer(STL_DATA_URL, st.session_state.show_cube, st.session_state.cube_size)
 
 components.html(
     html_code,
     height=600,
     scrolling=False
 )
+
+st.markdown("""
+---
+### Diagnóstico Final y Pasos a Seguir 💡
+
+Hemos vuelto a la configuración más simple que *sabemos* que funcionó anteriormente.
+
+* Si la esfera de la Tierra **aparece (color azul sólido)**: El problema es definitivamente la **textura** (UVs/Base64/MIME Type). La solución es usar un modelo OBJ o GLB pequeño y probarlo de nuevo, sabiendo que la geometría funciona.
+* Si la esfera de la Tierra **NO aparece** (solo el cubo): El problema es el **tamaño y/o la integridad** del archivo `Earth.stl`. El archivo es **demasiado grande** para el método Base64 en tu entorno, o el archivo STL está **dañado**.
+
+**Recomendación:** Descarga un modelo de la Tierra **OBJ o GLB** de muy baja resolución (menos de 500 KB) con textura incrustada y prueba de nuevo la solución GLB. Si ese modelo pequeño funciona, sabrás que el problema es el tamaño de tu archivo original.
+""")
