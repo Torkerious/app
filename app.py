@@ -3,7 +3,8 @@ import numpy as np
 import plotly.graph_objects as go
 import trimesh
 import os
-import imageio.v2 as imageio # Necesario para que trimesh pueda leer la textura
+# Usamos imageio.v2 para evitar la DeprecationWarning
+import imageio.v2 as imageio 
 
 # --- Configuración de Rutas de Archivo ---
 MODELOS_DIR = "modelos3d"
@@ -18,7 +19,6 @@ if 'additional_traces' not in st.session_state:
     st.session_state.additional_traces = []
 
 # --- 2. Funciones de Modelado (Elementos de Experimentación) ---
-# (Se mantienen las funciones crear_cubo y crear_esfera para la experimentación)
 
 def crear_cubo(size=10, color='blue', center=(-20, 0, 0)):
     """Crea un cubo para añadir como elemento adicional."""
@@ -46,10 +46,10 @@ def crear_esfera(radio=8, color='red', center=(20, 20, 20)):
         opacity=0.9, name=f'Esfera {radio}'
     )
 
-# --- 3. Función de Carga del Modelo STL con Textura Aplicada ---
+# --- 3. Función de Carga del Modelo STL con Textura Aplicada (CORREGIDA) ---
 
 def load_stl_with_texture_for_plotly(stl_path, texture_path):
-    """Carga STL, aplica la textura y devuelve la traza Plotly."""
+    """Carga STL, aplica la textura mediante mapeo de vértices y devuelve la traza Plotly."""
     if not os.path.exists(stl_path):
         st.error(f"❌ ¡ERROR! El archivo STL '{stl_path}' no se encontró.")
         return None
@@ -66,20 +66,25 @@ def load_stl_with_texture_for_plotly(stl_path, texture_path):
             if isinstance(mesh, trimesh.Scene):
                 mesh = trimesh.util.concatenate(mesh.dump(cached=True))
 
-            # 2. Leer la imagen de textura (necesita imageio)
+            # 2. Leer la imagen de textura
             image = imageio.imread(texture_path)
 
-            # 3. Mapear la textura a los vértices de la malla
-            # Esto es clave: Trimesh calcula un color para cada vértice basado en la imagen.
-            mesh.visual.set_texture_with_color(image)
+            # 3. Mapear la textura a los vértices de la malla (Método CORREGIDO)
+            # Creamos un objeto Visuals si no existe uno por defecto
+            if mesh.visual.kind != 'texture':
+                mesh.visual = trimesh.visual.TextureVisuals()
             
-            # Obtener los colores de los vértices (en formato RGBA o RGB)
-            # Necesitamos convertir de [0-255] a un formato que Plotly pueda manejar.
+            # Usamos el método set_vertex_colors_from_texture que es más estable
+            mesh.visual.set_vertex_colors_from_texture(image)
+            
+            # 4. Obtener los colores de los vértices y convertir a formato Hex para Plotly
+            # NOTA: Los colores se obtienen directamente de los visuales de la malla
             vertex_colors_int = mesh.visual.vertex_colors
-            # Convertir a colores hexadecimales, que Plotly acepta
+            
+            # Convertir el color [R, G, B, A] a '#RRGGBB'
             colors_hex = ['#%02x%02x%02x' % tuple(c[:3]) for c in vertex_colors_int]
 
-            # 4. Crear la traza de Plotly (Mesh3d)
+            # 5. Crear la traza de Plotly (Mesh3d)
             trace = go.Mesh3d(
                 x=mesh.vertices[:, 0], 
                 y=mesh.vertices[:, 1], 
@@ -94,8 +99,9 @@ def load_stl_with_texture_for_plotly(stl_path, texture_path):
             )
         return trace
     except Exception as e:
-        st.error(f"❌ Error al aplicar la textura: {e}")
-        st.info("Revisa la imagen (debe ser JPG o PNG válido) y la estructura del STL.")
+        # Esto atrapará errores de Trimesh y cualquier otro error de procesamiento
+        st.error(f"❌ Error interno al aplicar la textura: {e}")
+        st.info("Revisa si el modelo STL tiene coordenadas UV o si el archivo de textura es válido.")
         return None
 
 # --- 4. Carga del Modelo Principal y Creación de la Figura ---
@@ -150,3 +156,11 @@ if model_loaded or st.session_state.additional_traces:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("""
+    ---
+    ### Interacciones
+    * **Rotación:** Clic izquierdo y arrastrar.
+    * **Zoom:** Rueda del ratón.
+    * **Panorámica (Mover):** Clic derecho y arrastrar.
+    """)
