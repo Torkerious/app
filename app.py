@@ -29,7 +29,7 @@ STL_DATA_URL = get_stl_base64_data_url(MODELO_STL_PATH)
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D: Iluminación Corregida 💡")
+st.title("Visor 3D: Fuerza de Iluminación (DoubleSide) 🌍")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -80,18 +80,16 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 container.appendChild(renderer.domElement);
 
-                // --- AJUSTE DE LUZ 1: Aumentar la intensidad ambiente ---
-                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.5); // Incremento de intensidad
+                // Iluminación robusta (alta intensidad)
+                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.5); 
                 scene.add(ambientLight);
                 
-                // --- AJUSTE DE LUZ 2: Luz direccional principal ---
-                const directionalLight1 = new THREE.DirectionalLight(0xFFFFFF, 1.5); // Más intensa
+                const directionalLight1 = new THREE.DirectionalLight(0xFFFFFF, 1.5); 
                 directionalLight1.position.set(100, 100, 100);
                 scene.add(directionalLight1);
                 
-                // --- AJUSTE DE LUZ 3: Segunda luz direccional (contraluz) ---
-                const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 0.7); // Una luz más suave
-                directionalLight2.position.set(-100, -100, -100); // Desde el lado opuesto
+                const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 0.7); 
+                directionalLight2.position.set(-100, -100, -100); 
                 scene.add(directionalLight2);
 
 
@@ -104,11 +102,11 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 // 1. Cargar Textura con URL simple
                 const texture = textureLoader.load(textureURL, 
                     function(tex) {{
-                        tex.needsUpdate = true; // Forzar actualización de la textura
+                        tex.needsUpdate = true;
                     }}, 
                     undefined, 
                     function(err) {{
-                        console.error('Error al cargar la textura PNG por URL simple. El archivo estático NO es accesible.', err);
+                        console.error('Error al cargar la textura PNG por URL simple.', err);
                     }}
                 );
                 
@@ -119,8 +117,7 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                     // Usar material con textura
                     const material = new THREE.MeshPhongMaterial({{ 
                         map: texture, 
-                        // --- AJUSTE DE MATERIAL: Probar con FrontSide ---
-                        side: THREE.FrontSide, // Opcionalmente probar THREE.DoubleSide
+                        side: THREE.DoubleSide, // <--- LA CLAVE PARA LAS NORMALES INVERTIDAS
                         needsUpdate: true 
                     }}); 
 
