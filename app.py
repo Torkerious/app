@@ -161,6 +161,14 @@ with col2:
         help="Ajusta qué tan altos se ven los edificios en el mapa"
     )
 
+# DEFINIR COLORES DE TIPOS DE EDIFICIOS (CORRECCIÓN)
+colores_tipos = {
+    'residencial': 'blue', 
+    'comercial': 'orange', 
+    'industrial': 'red', 
+    'rascacielos': 'purple'
+}
+
 # Definir distritos de Ciudad Aurora
 distritos_aurora = {
     'centro': {
@@ -639,9 +647,6 @@ with col2:
                    'gray', linewidth=carretera['ancho'], alpha=0.7)
         
         # Dibujar edificios
-        colores_tipos = {'residencial': 'blue', 'comercial': 'orange', 
-                        'industrial': 'red', 'rascacielos': 'purple'}
-        
         for edificio in resultado['ciudad']['edificios']:
             distancia = np.sqrt((edificio['x'] - punto_impacto_x)**2 + (edificio['y'] - punto_impacto_y)**2)
             
@@ -804,9 +809,9 @@ if resultado is None:
                        [carretera['y1'], carretera['y2']], 
                        'gray', linewidth=carretera['ancho'], alpha=0.7)
     
-    # Dibujar algunos edificios de ejemplo
+    # Dibujar algunos edificios de ejemplo (USANDO colores_tipos DEFINIDO)
     for i, edificio in enumerate(ciudad_ejemplo['edificios'][:50]):  # Solo algunos para vista previa
-        color = colores_tipos[edificio['tipo']]
+        color = colores_tipos[edificio['tipo']]  # ✅ AHORA ESTÁ DEFINIDO
         ancho_edificio = 1.0 * multiplicador_ancho
         altura_edificio = edificio['altura_base'] * multiplicador_altura
         
