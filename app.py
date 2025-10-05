@@ -330,7 +330,7 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
     
     # Población afectada basada en densidad
     factor_poblacion = densidad / 50.0  # 0.2x a 2x según densidad
-    poblacion_afectada = int((edificios_destruidos * 50 + edificios_danados * 100) * factor_poblacion)
+    poblacion_afectada = int((edificios_destruidos * 50 + edificios_danados * 1000000) * factor_poblacion)
     
     return {
         "energia_megatones": energia_megatones,
