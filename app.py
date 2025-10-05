@@ -1,183 +1,177 @@
 import streamlit as st
-import streamlit.components.v1 as components
-import os
-import base64
+import numpy as np
+import matplotlib.pyplot as plt
+import time
 
-# --- Rutas de Archivo ---
-MODELO_STL_PATH = "Earth.stl" 
-TEXTURE_URL = "earth_texture.png" 
-
-# --- Función para codificar SOLO el STL a Base64 ---
-def get_stl_base64_data_url(file_path):
-    if not os.path.exists(file_path):
-        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró.")
-        return None
-    try:
-        with open(file_path, 'rb') as f:
-            file_bytes = f.read()
-            encoded = base64.b64encode(file_bytes).decode()
-            return f"data:application/vnd.ms-pki.stl;base64,{encoded}"
-    except Exception as e:
-        st.error(f"❌ Error al codificar {file_path} a Base64: {e}")
-        return None
-
-# Generar la URL Base64 Data (SOLO EL STL)
-STL_DATA_URL = get_stl_base64_data_url(MODELO_STL_PATH)
-
-
-# --- 1. Configuración de Streamlit y Estado ---
-st.set_page_config(layout="wide")
-st.title("Visor 3D: Corrección de Color Final 🌈")
-
-if 'show_cube' not in st.session_state:
-    st.session_state.show_cube = False
-if 'cube_size' not in st.session_state:
-    st.session_state.cube_size = 10.0
-
-
-# --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
-
-def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
-    if stl_data_url is None: return ""
-
-    HTML_CODE = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Three.js STL Viewer</title>
-        <style>
-            body {{ margin: 0; }}
-            #container {{ width: 100%; height: 600px; }} 
-        </style>
-    </head>
-    <body>
-        <div id="container"></div>
-        
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
-
-        <script>
-            let scene, camera, renderer, controls;
-            const container = document.getElementById('container');
-            const modelURL = '{stl_data_url}';
-            const textureURL = '{texture_url}'; 
-            const showCube = {str(show_cube).lower()};
-            const cubeSize = {cube_size};
-            
-            const FALLBACK_CAMERA_POSITION = new THREE.Vector3(150, 0, 0);
-
-            function init() {{
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(0xFFFFFF); 
-
-                // Configuración global del renderizador (crucial para el color)
-                renderer = new THREE.WebGLRenderer({{ antialias: true }});
-                renderer.outputEncoding = THREE.sRGBEncoding; // <--- Crucial 1: Salida de color
-                renderer.setSize(container.clientWidth, container.clientHeight);
-                container.appendChild(renderer.domElement);
-
-                camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 10000);
-                camera.position.copy(FALLBACK_CAMERA_POSITION);
-                
-                controls = new THREE.OrbitControls(camera, renderer.domElement);
-                controls.target.set(0, 0, 0); 
-                
-                const textureLoader = new THREE.TextureLoader();
-                const stlLoader = new THREE.STLLoader();
-
-                // 1. Cargar Textura con ajustes de color
-                const texture = textureLoader.load(textureURL, 
-                    function(tex) {{
-                        // --- Crucial 2: Forzar la codificación de la textura a sRGB ---
-                        tex.encoding = THREE.sRGBEncoding; 
-                        tex.needsUpdate = true;
-                    }}, 
-                    undefined, 
-                    function(err) {{
-                        console.error('Error al cargar la textura PNG por URL simple.', err);
-                    }}
-                );
-                
-                // 2. Cargar el STL y aplicar el material
-                stlLoader.load(modelURL, function(geometry) {{
-                    geometry.center(); 
-                    
-                    // Usar material Básico (ignora luz)
-                    const material = new THREE.MeshBasicMaterial({{ 
-                        map: texture, 
-                        color: 0xFFFFFF, 
-                        side: THREE.DoubleSide, 
-                        needsUpdate: true 
-                    }}); 
-
-                    const mesh = new THREE.Mesh(geometry, material);
-                    
-                    const box = new THREE.Box3().setFromObject(mesh);
-                    const size = box.getSize(new THREE.Vector3());
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 100 / maxDim;
-                    mesh.scale.set(scale, scale, scale);
-                    
-                    scene.add(mesh);
-                    
-                    camera.position.set(maxDim * scale * 1.5, 0, 0); 
-                    controls.update();
-                    
-                }}, undefined, function(error) {{
-                    console.error('Error CRÍTICO al cargar el STL (Base64).', error);
-                }});
-
-
-                // --- Elemento de Experimentación (Cubo) ---
-                if (showCube) {{
-                    const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-                    const cubeMaterial = new THREE.MeshBasicMaterial({{ color: 0x0000FF, transparent: true, opacity: 0.7 }});
-                    const cube = new THREE.Mesh(geometry, cubeMaterial);
-                    
-                    cube.position.set(50, 50, 0); 
-                    scene.add(cube);
-                }}
-
-                animate();
-            }}
-
-            function animate() {{
-                requestAnimationFrame(animate);
-                controls.update();
-                renderer.render(scene, camera);
-            }}
-            
-            function onWindowResize() {{
-                camera.aspect = container.clientWidth / container.clientHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(container.clientWidth, container.clientHeight);
-            }}
-
-            window.addEventListener('resize', onWindowResize, false);
-
-            init();
-        </script>
-    </body>
-    </html>
-    """
-    return HTML_CODE
-
-# --- 3. Renderizado y Controles de Streamlit ---
-
-st.sidebar.header("Controles de Experimentación")
-
-if st.sidebar.checkbox("Mostrar Cubo de Análisis", key='cube_toggle', value=st.session_state.show_cube):
-    st.session_state.show_cube = True
-    st.session_state.cube_size = st.sidebar.slider("Tamaño del Cubo", 1.0, 50.0, st.session_state.cube_size, 1.0)
-else:
-    st.session_state.show_cube = False
-
-
-html_code = generate_threejs_viewer(STL_DATA_URL, TEXTURE_URL, st.session_state.show_cube, st.session_state.cube_size)
-
-components.html(
-    html_code,
-    height=600,
-    scrolling=False
+# Configuración de la página
+st.set_page_config(
+    page_title="Simulador de Impacto de Meteoritos",
+    page_icon="🌠",
+    layout="wide"
 )
+
+# CSS personalizado para mejor apariencia
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 3rem;
+        color: #FF6B35;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .impact-warning {
+        background-color: #ff4444;
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .mitigation-success {
+        background-color: #44ff44;
+        color: black;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Título principal
+st.markdown('<h1 class="main-header">🌠 Simulador de Impacto de Meteoritos</h1>', unsafe_allow_html=True)
+
+# Sidebar para controles
+with st.sidebar:
+    st.header("🎮 Controles de Simulación")
+    
+    # Parámetros del meteorito
+    diametro = st.slider("Diámetro del meteorito (metros)", 10, 5000, 100)
+    velocidad = st.slider("Velocidad (km/s)", 5, 70, 20)
+    angulo_impacto = st.slider("Ángulo de impacto (grados)", 0, 90, 45)
+    composicion = st.selectbox("Composición", ["Roca", "Hierro", "Hielo"])
+    
+    # Estrategias de mitigación
+    st.header("🛡️ Estrategias de Mitigación")
+    defensa_laser = st.checkbox("Sistema de Defensa Láser")
+    desviacion_nuclear = st.checkbox("Desviación Nuclear")
+    tractor_gravitatorio = st.checkbox("Tractor Gravitatorio")
+    escudo_atmosferico = st.checkbox("Reforzar Escudo Atmosférico")
+
+# Función de simulación
+def simular_impacto(diametro, velocidad, angulo, composicion, defensas):
+    # Cálculos simplificados del impacto
+    masa = diametro ** 3 * (1000 if composicion == "Hierro" else 500 if composicion == "Roca" else 300)
+    energia = 0.5 * masa * (velocidad * 1000) ** 2  # En joules
+    energia_megatones = energia / (4.184e15)  # Convertir a megatones
+    
+    # Efecto de las defensas
+    reduccion = 0
+    if defensas["laser"]:
+        reduccion += 0.3
+    if defensas["nuclear"]:
+        reduccion += 0.4
+    if defensas["tractor"]:
+        reduccion += 0.2
+    if defensas["escudo"]:
+        reduccion += 0.1
+    
+    energia_final = energia_megatones * (1 - reduccion)
+    
+    return {
+        "energia_megatones": energia_megatones,
+        "energia_final": energia_final,
+        "reduccion": reduccion * 100,
+        "crater_diametro": diametro * 20 * (1 - reduccion * 0.5)
+    }
+
+# Botón de simulación
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    if st.button("🚀 Ejecutar Simulación", use_container_width=True):
+        
+        # Mostrar animación de carga
+        with st.spinner("Simulando trayectoria del meteorito..."):
+            progress_bar = st.progress(0)
+            for i in range(100):
+                time.sleep(0.01)
+                progress_bar.progress(i + 1)
+        
+        # Ejecutar simulación
+        defensas = {
+            "laser": defensa_laser,
+            "nuclear": desviacion_nuclear,
+            "tractor": tractor_gravitatorio,
+            "escudo": escudo_atmosferico
+        }
+        
+        resultado = simular_impacto(diametro, velocidad, angulo_impacto, composicion, defensas)
+        
+        # Mostrar resultados
+        st.subheader("📊 Resultados de la Simulación")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric("Energía del Impacto", f"{resultado['energia_megatones']:.2f} MT")
+            st.metric("Diámetro del Cráter", f"{resultado['crater_diametro']:.0f} m")
+            
+        with col2:
+            st.metric("Energía Mitigada", f"{resultado['energia_final']:.2f} MT")
+            st.metric("Reducción del Daño", f"{resultado['reduccion']:.1f}%")
+        
+        # Gráfico de impacto
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Simular cráter
+        x = np.linspace(-resultado['crater_diametro']/2, resultado['crater_diametro']/2, 100)
+        y = -((2*x/resultado['crater_diametro'])**2) * resultado['crater_diametro']/4
+        
+        ax.fill_between(x, y, -resultado['crater_diametro']/2, alpha=0.7, color='brown')
+        ax.plot(x, y, 'k-', linewidth=2)
+        ax.set_title(f'Cráter de Impacto - Diámetro: {resultado["crater_diametro"]:.0f}m')
+        ax.set_aspect('equal')
+        ax.grid(True, alpha=0.3)
+        
+        st.pyplot(fig)
+        
+        # Evaluación de resultados
+        if resultado['energia_final'] > 10:
+            st.markdown('<div class="impact-warning">⚠️ ALTO PELIGO: Impacto catastrófico probable</div>', unsafe_allow_html=True)
+            st.error("💥 Se requiere acción inmediata y estrategias adicionales")
+        elif resultado['energia_final'] > 1:
+            st.warning("⚠️ PELIGRO MODERADO: Daños significativos esperados")
+        else:
+            st.markdown('<div class="mitigation-success">✅ SITUACIÓN CONTROLADA: Impacto mitigado exitosamente</div>', unsafe_allow_html=True)
+            st.success("🎉 ¡Las estrategias de mitigación han funcionado!")
+
+# Sección educativa
+st.markdown("---")
+st.header("📚 Estrategias de Mitigación Explicadas")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.subheader("🔫 Defensa Láser")
+    st.write("Sistema de láseres orbitales que vaporizan parte del meteorito")
+    
+with col2:
+    st.subheader("☢️ Desviación Nuclear")
+    st.write("Explosiones nucleares controladas para alterar la trayectoria")
+    
+with col3:
+    st.subheader("🛰️ Tractor Gravitatorio")
+    st.write("Nave espacial que usa gravedad para desviar lentamente el objeto")
+    
+with col4:
+    st.subheader("🛡️ Escudo Atmosférico")
+    st.write("Refuerzo de sistemas de defensa atmosférica existentes")
+
+# Información adicional
+with st.expander("🔍 Más información sobre impactos de meteoritos"):
+    st.write("""
+    **Datos interesantes:**
+    - El meteorito de Chelyabinsk (2013) liberó ~500 kilotones de energía
+    - El evento de Tunguska (1908) liberó ~10-15 megatones
+    - Los sistemas de detección temprana son cruciales para la defensa planetaria
+    """)
+
+# Ejecutar con: streamlit run simulador_meteoritos.py
