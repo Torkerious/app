@@ -11,7 +11,7 @@ import os
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Simulador de Impacto - Mapa con Imagen",
+    page_title="Simulador de Impacto - China",
     page_icon="🗺️",
     layout="wide"
 )
@@ -79,73 +79,128 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Título principal
-st.markdown('<h1 class="main-header">Simulador de Impacto - Mapa con Imagen</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">Simulador de Impacto - China</h1>', unsafe_allow_html=True)
 
 # Nombres de archivos que deben estar en la carpeta del proyecto
-MAPA_FONDO_FILE = "mapa_ciudad_fondo.png"
-MAPA_DENSIDAD_FILE = "mapa_densidad.png"
+MAPA_CHINA_FILE = "mapa_china.png"
 
-# Función para cargar imágenes
-def cargar_imagenes():
-    """Carga las imágenes desde los archivos locales"""
+# Datos de población real de China por provincias (en miles de habitantes)
+poblacion_china = {
+    'guangdong': {
+        'nombre': 'Guangdong',
+        'poblacion': 126012,  # en miles (126 millones)
+        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 25, 'y_max': 35},
+        'descripcion': 'Provincia más poblada de China'
+    },
+    'shandong': {
+        'nombre': 'Shandong',
+        'poblacion': 101527,
+        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 40, 'y_max': 50},
+        'descripcion': 'Provincia costera del este'
+    },
+    'henan': {
+        'nombre': 'Henan',
+        'poblacion': 99365,
+        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 45, 'y_max': 55},
+        'descripcion': 'Corazón de China central'
+    },
+    'jiangsu': {
+        'nombre': 'Jiangsu',
+        'poblacion': 84748,
+        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 35, 'y_max': 45},
+        'descripcion': 'Zona económica desarrollada'
+    },
+    'sichuan': {
+        'nombre': 'Sichuan',
+        'poblacion': 83675,
+        'coordenadas': {'x_min': 50, 'x_max': 70, 'y_min': 40, 'y_max': 55},
+        'descripcion': 'Provincia del suroeste'
+    },
+    'hebei': {
+        'nombre': 'Hebei',
+        'poblacion': 75919,
+        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 50, 'y_max': 60},
+        'descripcion': 'Rodeando Beijing'
+    },
+    'hunan': {
+        'nombre': 'Hunan',
+        'poblacion': 69185,
+        'coordenadas': {'x_min': 65, 'x_max': 80, 'y_min': 30, 'y_max': 40},
+        'descripcion': 'Provincia central'
+    },
+    'anhui': {
+        'nombre': 'Anhui',
+        'poblacion': 63236,
+        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 30, 'y_max': 40},
+        'descripcion': 'Este de China'
+    },
+    'hubei': {
+        'nombre': 'Hubei',
+        'poblacion': 59172,
+        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 35, 'y_max': 45},
+        'descripcion': 'China central'
+    },
+    'zhejiang': {
+        'nombre': 'Zhejiang',
+        'poblacion': 58500,
+        'coordenadas': {'x_min': 95, 'x_max': 110, 'y_min': 25, 'y_max': 35},
+        'descripcion': 'Costa este desarrollada'
+    }
+}
+
+# Puntos de interés críticos en China
+puntos_criticos_china = {
+    'beijing': {'x': 88, 'y': 55, 'nombre': 'Beijing', 'tipo': 'capital'},
+    'shanghai': {'x': 100, 'y': 35, 'nombre': 'Shanghai', 'tipo': 'economico'},
+    'guangzhou': {'x': 82, 'y': 28, 'nombre': 'Guangzhou', 'tipo': 'economico'},
+    'shenzhen': {'x': 85, 'y': 25, 'nombre': 'Shenzhen', 'tipo': 'tecnologico'},
+    'wuhan': {'x': 78, 'y': 40, 'nombre': 'Wuhan', 'tipo': 'industrial'},
+    'xian': {'x': 65, 'y': 48, 'nombre': 'Xi\'an', 'tipo': 'cultural'}
+}
+
+# Función para cargar imagen de China
+def cargar_imagen_china():
+    """Carga la imagen del mapa de China"""
     try:
-        # Cargar imagen de fondo principal
-        if os.path.exists(MAPA_FONDO_FILE):
-            imagen_fondo = Image.open(MAPA_FONDO_FILE)
-            st.success(f"Imagen de fondo cargada: {MAPA_FONDO_FILE}")
+        if os.path.exists(MAPA_CHINA_FILE):
+            imagen_china = Image.open(MAPA_CHINA_FILE)
+            st.success(f"Mapa de China cargado: {MAPA_CHINA_FILE}")
+            return imagen_china
         else:
-            st.warning(f"Archivo {MAPA_FONDO_FILE} no encontrado. Usando mapa por defecto.")
-            imagen_fondo = generar_mapa_por_defecto()
-        
-        # Cargar imagen de densidad (opcional, para referencia)
-        if os.path.exists(MAPA_DENSIDAD_FILE):
-            imagen_densidad = Image.open(MAPA_DENSIDAD_FILE)
-            st.success(f"Imagen de densidad cargada: {MAPA_DENSIDAD_FILE}")
-        else:
-            st.info(f"Archivo {MAPA_DENSIDAD_FILE} no encontrado. Usando datos simulados.")
-            imagen_densidad = None
-            
-        return imagen_fondo, imagen_densidad
-        
+            st.warning(f"Archivo {MAPA_CHINA_FILE} no encontrado. Usando mapa por defecto.")
+            return generar_mapa_china_por_defecto()
     except Exception as e:
-        st.error(f"Error cargando imagenes: {e}")
-        return generar_mapa_por_defecto(), None
+        st.error(f"Error cargando mapa de China: {e}")
+        return generar_mapa_china_por_defecto()
 
-def generar_mapa_por_defecto():
-    """Genera un mapa de ciudad por defecto si no hay imagen"""
-    fig, ax = plt.subplots(figsize=(10, 8))
+def generar_mapa_china_por_defecto():
+    """Genera un mapa simplificado de China si no hay imagen"""
+    fig, ax = plt.subplots(figsize=(12, 10))
     
-    # Fondo de ciudad simulado
+    # Fondo del mapa
     ax.set_facecolor('#1a1a2e')
     
-    # Crear calles principales
-    for i in range(0, 101, 15):
-        ax.plot([i, i], [0, 100], 'w-', alpha=0.4, linewidth=1)
-        ax.plot([0, 100], [i, i], 'w-', alpha=0.4, linewidth=1)
+    # Contorno aproximado de China
+    china_outline = np.array([
+        [40, 20], [50, 25], [60, 30], [70, 35], [80, 40], [90, 45],
+        [100, 40], [110, 35], [115, 30], [120, 25], [115, 20],
+        [105, 15], [95, 10], [85, 15], [75, 20], [65, 25], [55, 20],
+        [45, 15], [40, 20]
+    ])
     
-    # Avenidas principales
-    ax.plot([33, 33], [0, 100], 'y-', alpha=0.6, linewidth=3, label='Av. Principal')
-    ax.plot([66, 66], [0, 100], 'y-', alpha=0.6, linewidth=3)
-    ax.plot([0, 100], [33, 33], 'y-', alpha=0.6, linewidth=3)
-    ax.plot([0, 100], [66, 66], 'y-', alpha=0.6, linewidth=3)
+    polygon = Polygon(china_outline, closed=True, facecolor='#2c3e50', 
+                     edgecolor='white', alpha=0.8, linewidth=2)
+    ax.add_patch(polygon)
     
-    # Zonas verdes (parques)
-    parques = [
-        {'x': 20, 'y': 20, 'ancho': 15, 'alto': 15},
-        {'x': 70, 'y': 70, 'ancho': 20, 'alto': 20},
-        {'x': 25, 'y': 70, 'ancho': 12, 'alto': 12}
-    ]
+    # Ríos principales (simplificados)
+    ax.plot([60, 80, 95], [45, 40, 35], 'b-', linewidth=3, alpha=0.6, label='Río Yangtsé')
+    ax.plot([50, 70, 85], [50, 45, 40], 'b-', linewidth=2, alpha=0.6, label='Río Amarillo')
     
-    for parque in parques:
-        rect = Rectangle((parque['x'], parque['y']), parque['ancho'], parque['alto'],
-                        facecolor='#2e8b57', alpha=0.6, edgecolor='green')
-        ax.add_patch(rect)
-    
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
+    ax.set_xlim(30, 125)
+    ax.set_ylim(5, 65)
     ax.set_aspect('equal')
     ax.axis('off')
-    ax.set_title('Mapa de Ciudad por Defecto', fontsize=14, color='white', pad=20)
+    ax.set_title('Mapa de China - Simulador de Impacto', fontsize=16, color='white', pad=20)
     
     # Convertir a imagen
     buf = io.BytesIO()
@@ -155,72 +210,7 @@ def generar_mapa_por_defecto():
     plt.close(fig)
     return Image.open(buf)
 
-# Cargar imagenes
-imagen_fondo, imagen_densidad = cargar_imagenes()
-
-# Datos de densidad poblacional simulados (basados en coordenadas del mapa)
-datos_densidad = {
-    'centro_urbano': {
-        'nombre': 'Centro Urbano',
-        'poblacion': 350000,
-        'densidad': 'Muy Alta',
-        'coordenadas': {'x_min': 40, 'x_max': 60, 'y_min': 40, 'y_max': 60},
-        'descripcion': 'Zona central de negocios y comercios'
-    },
-    'norte_residencial': {
-        'nombre': 'Norte Residencial',
-        'poblacion': 280000,
-        'densidad': 'Alta',
-        'coordenadas': {'x_min': 30, 'x_max': 50, 'y_min': 65, 'y_max': 85},
-        'descripcion': 'Area residencial consolidada'
-    },
-    'sur_industrial': {
-        'nombre': 'Sur Industrial',
-        'poblacion': 120000,
-        'densidad': 'Media',
-        'coordenadas': {'x_min': 20, 'x_max': 40, 'y_min': 10, 'y_max': 30},
-        'descripcion': 'Zona industrial y manufacturera'
-    },
-    'este_comercial': {
-        'nombre': 'Este Comercial',
-        'poblacion': 190000,
-        'densidad': 'Alta',
-        'coordenadas': {'x_min': 60, 'x_max': 80, 'y_min': 50, 'y_max': 70},
-        'descripcion': 'Centros comerciales y servicios'
-    },
-    'oeste_residencial': {
-        'nombre': 'Oeste Residencial',
-        'poblacion': 220000,
-        'densidad': 'Media',
-        'coordenadas': {'x_min': 10, 'x_max': 30, 'y_min': 40, 'y_max': 60},
-        'descripcion': 'Zona residencial media'
-    },
-    'distrito_universitario': {
-        'nombre': 'Distrito Universitario',
-        'poblacion': 80000,
-        'densidad': 'Media',
-        'coordenadas': {'x_min': 65, 'x_max': 85, 'y_min': 75, 'y_max': 90},
-        'descripcion': 'Campus y areas academicas'
-    },
-    'zona_verde_central': {
-        'nombre': 'Parque Central',
-        'poblacion': 5000,
-        'densidad': 'Muy Baja',
-        'coordenadas': {'x_min': 45, 'x_max': 55, 'y_min': 20, 'y_max': 35},
-        'descripcion': 'Area verde metropolitana'
-    }
-}
-
-# Puntos de interes criticos
-puntos_criticos = {
-    'hospital_central': {'x': 52, 'y': 52, 'nombre': 'Hospital Central', 'tipo': 'hospital'},
-    'ayuntamiento': {'x': 48, 'y': 48, 'nombre': 'Ayuntamiento', 'tipo': 'gobierno'},
-    'estacion_central': {'x': 55, 'y': 45, 'nombre': 'Estacion Central', 'tipo': 'transporte'},
-    'centro_comercial': {'x': 62, 'y': 58, 'nombre': 'Mega Centro', 'tipo': 'comercio'},
-    'universidad': {'x': 72, 'y': 80, 'nombre': 'Universidad', 'tipo': 'educacion'}
-}
-
-# Funcion para crear el asteroide
+# Función para crear el asteroide
 def crear_asteroide():
     """Crea una imagen de asteroide simple"""
     fig, ax = plt.subplots(figsize=(2, 2))
@@ -249,66 +239,68 @@ def crear_asteroide():
     plt.close(fig)
     return buf
 
-# Funcion para crear mapa con imagen de fondo
-def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=None, tamaño_asteroide=1):
-    """Crea un mapa con imagen de fondo y datos de densidad"""
+# Función para crear mapa de China
+def crear_mapa_china(imagen_china, mostrar_asteroide=False, pos_asteroide=None, tamaño_asteroide=1):
+    """Crea un mapa de China con provincias y puntos críticos"""
     fig, ax = plt.subplots(figsize=(14, 10))
     
-    # Mostrar imagen de fondo
-    ax.imshow(imagen_fondo, extent=[0, 100, 0, 100], alpha=0.7)
+    # Mostrar imagen de fondo de China
+    ax.imshow(imagen_china, extent=[30, 125, 5, 65], alpha=0.8)
     
-    # Dibujar zonas de densidad poblacional (semi-transparentes)
-    for zona_id, zona in datos_densidad.items():
-        coords = zona['coordenadas']
+    # Dibujar provincias (semi-transparentes)
+    for provincia_id, provincia in poblacion_china.items():
+        coords = provincia['coordenadas']
         ancho = coords['x_max'] - coords['x_min']
         alto = coords['y_max'] - coords['y_min']
         
-        # Color basado en densidad
-        if zona['densidad'] == 'Muy Alta':
+        # Color basado en densidad poblacional
+        poblacion = provincia['poblacion']
+        if poblacion > 100000:  # Más de 100 millones
             color = '#e74c3c'
-            alpha = 0.3
-        elif zona['densidad'] == 'Alta':
+            alpha = 0.4
+        elif poblacion > 80000:
             color = '#e67e22'
-            alpha = 0.25
-        elif zona['densidad'] == 'Media':
+            alpha = 0.35
+        elif poblacion > 60000:
             color = '#f1c40f'
-            alpha = 0.2
+            alpha = 0.3
         else:
             color = '#27ae60'
-            alpha = 0.15
+            alpha = 0.25
         
         rect = Rectangle((coords['x_min'], coords['y_min']), ancho, alto,
                         facecolor=color, alpha=alpha, edgecolor=color, linewidth=2)
         ax.add_patch(rect)
         
-        # Etiqueta de la zona
+        # Etiqueta de la provincia
         centro_x = (coords['x_min'] + coords['x_max']) / 2
         centro_y = (coords['y_min'] + coords['y_max']) / 2
         
-        ax.text(centro_x, centro_y, f"{zona['nombre']}\n{zona['poblacion']:,} hab.", 
-               ha='center', va='center', fontsize=8, weight='bold',
+        ax.text(centro_x, centro_y, 
+               f"{provincia['nombre']}\n{provincia['poblacion']:,} mil hab.", 
+               ha='center', va='center', fontsize=7, weight='bold',
                bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.9))
     
-    # Dibujar puntos criticos
-    for punto_id, punto in puntos_criticos.items():
-        if punto['tipo'] == 'hospital':
-            marker, color = 'H', 'red'
-        elif punto['tipo'] == 'gobierno':
-            marker, color = 's', 'blue'
-        elif punto['tipo'] == 'transporte':
-            marker, color = '^', 'green'
-        elif punto['tipo'] == 'comercio':
-            marker, color = 'o', 'orange'
+    # Dibujar puntos críticos
+    for punto_id, punto in puntos_criticos_china.items():
+        if punto['tipo'] == 'capital':
+            marker, color = 's', 'red'
+        elif punto['tipo'] == 'economico':
+            marker, color = 'o', 'blue'
+        elif punto['tipo'] == 'tecnologico':
+            marker, color = 'D', 'green'
+        elif punto['tipo'] == 'industrial':
+            marker, color = '^', 'orange'
         else:
-            marker, color = 'D', 'purple'
+            marker, color = 'v', 'purple'
         
         ax.plot(punto['x'], punto['y'], marker=marker, color=color, 
-               markersize=12, markeredgecolor='white', linewidth=2)
-        ax.text(punto['x'], punto['y'] + 4, punto['nombre'],
+               markersize=10, markeredgecolor='white', linewidth=2)
+        ax.text(punto['x'], punto['y'] + 2, punto['nombre'],
                ha='center', va='bottom', fontsize=7, weight='bold', 
                bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8))
     
-    # Mostrar asteroide si esta activado
+    # Mostrar asteroide si está activado
     if mostrar_asteroide and pos_asteroide:
         asteroid_img = crear_asteroide()
         img = plt.imread(asteroid_img)
@@ -320,35 +312,33 @@ def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=N
         
         # Trayectoria del asteroide
         ax.plot([pos_asteroide[0], pos_asteroide[0]], 
-               [100, pos_asteroide[1]], 'r--', alpha=0.7, linewidth=2,
+               [65, pos_asteroide[1]], 'r--', alpha=0.7, linewidth=2,
                label='Trayectoria Asteroide')
     
-    # Configuracion del mapa
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
+    # Configuración del mapa
+    ax.set_xlim(30, 125)
+    ax.set_ylim(5, 65)
     ax.set_aspect('equal')
-    ax.set_title('Mapa de Ciudad - Simulador de Impacto\n(Zonas de densidad poblacional superpuestas)', 
+    ax.set_title('Mapa de China - Simulador de Impacto\n(Provincias por densidad poblacional)', 
                 fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel('Coordenada X')
-    ax.set_ylabel('Coordenada Y')
+    ax.set_xlabel('Longitud Este')
+    ax.set_ylabel('Latitud Norte')
     ax.grid(False)
     
     # Leyenda
     legend_elements = [
         plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#e74c3c', 
-                  markersize=10, label='Densidad Muy Alta', alpha=0.7),
+                  markersize=10, label='>100M hab.', alpha=0.7),
         plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#e67e22', 
-                  markersize=10, label='Densidad Alta', alpha=0.7),
+                  markersize=10, label='80-100M hab.', alpha=0.7),
         plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#f1c40f', 
-                  markersize=10, label='Densidad Media', alpha=0.7),
+                  markersize=10, label='60-80M hab.', alpha=0.7),
         plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#27ae60', 
-                  markersize=10, label='Densidad Baja', alpha=0.7),
-        plt.Line2D([0], [0], marker='H', color='w', markerfacecolor='red', 
-                  markersize=8, label='Hospital'),
-        plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='blue', 
-                  markersize=8, label='Gobierno'),
-        plt.Line2D([0], [0], marker='^', color='w', markerfacecolor='green', 
-                  markersize=8, label='Transporte'),
+                  markersize=10, label='<60M hab.', alpha=0.7),
+        plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='red', 
+                  markersize=8, label='Capital'),
+        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', 
+                  markersize=8, label='Centro Económico'),
     ]
     
     ax.legend(handles=legend_elements, loc='upper right', 
@@ -356,7 +346,7 @@ def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=N
     
     return fig
 
-# Funcion para formatear energia
+# Función para formatear energía
 def formatear_energia(energia_megatones):
     if energia_megatones >= 1000:
         return f"{energia_megatones/1000:.1f}", "GT"
@@ -369,16 +359,16 @@ def formatear_energia(energia_megatones):
     else:
         return f"{energia_megatones:.2f}", "MT"
 
-# Funcion de simulacion
-def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y, defensas):
-    # Calculos del impacto
+# Función de simulación para China
+def simular_impacto_china(diametro, velocidad, punto_impacto_x, punto_impacto_y, defensas):
+    # Cálculos del impacto
     masa = diametro ** 3 * 800
     energia_joules = 0.5 * masa * (velocidad * 1000) ** 2
     energia_megatones = energia_joules / (4.184e15)
     
-    # Radio de destruccion
-    radio_destruccion_total = diametro * 25
-    radio_destruccion_parcial = radio_destruccion_total * 2
+    # Radio de destrucción (ajustado para escala de China)
+    radio_destruccion_total = diametro * 20 / 1000  # en unidades del mapa
+    radio_destruccion_parcial = radio_destruccion_total * 3
     
     # Efecto de las defensas
     reduccion = 0
@@ -391,36 +381,40 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
     if defensas["escudo"]:
         reduccion += 0.1
     
-    # Aplicar reduccion
+    # Aplicar reducción
     radio_destruccion_total *= (1 - reduccion)
     radio_destruccion_parcial *= (1 - reduccion)
     energia_final = energia_megatones * (1 - reduccion)
     energia_mitigada = energia_megatones - energia_final
     
-    # Calcular poblacion afectada
-    zonas_afectadas = {}
+    # Calcular población afectada en China
+    provincias_afectadas = {}
     poblacion_total_afectada = 0
     
-    for zona_id, zona in datos_densidad.items():
-        coords = zona['coordenadas']
+    for provincia_id, provincia in poblacion_china.items():
+        coords = provincia['coordenadas']
         centro_x = (coords['x_min'] + coords['x_max']) / 2
         centro_y = (coords['y_min'] + coords['y_max']) / 2
         
         distancia = np.sqrt((centro_x - punto_impacto_x)**2 + (centro_y - punto_impacto_y)**2)
         
-        # Calcular afectacion basada en distancia
-        if distancia <= radio_destruccion_total / 10:
-            factor_afectacion = 0.9  # 90% en zona de destruccion total
-        elif distancia <= radio_destruccion_parcial / 10:
-            factor_afectacion = 0.6  # 60% en zona parcial
+        # Calcular afectación basada en distancia
+        if distancia <= radio_destruccion_total:
+            factor_afectacion = 0.8  # 80% en zona de destrucción total
+        elif distancia <= radio_destruccion_parcial:
+            factor_afectacion = 0.4  # 40% en zona parcial
         else:
-            factor_afectacion = 0.2  # 20% efectos secundarios
+            factor_afectacion = 0.1  # 10% efectos secundarios
         
-        poblacion_afectada = int(zona['poblacion'] * factor_afectacion)
-        zonas_afectadas[zona_id] = {
+        # Convertir población de miles a número real
+        poblacion_real = provincia['poblacion'] * 1000
+        poblacion_afectada = int(poblacion_real * factor_afectacion)
+        
+        provincias_afectadas[provincia_id] = {
             'poblacion_afectada': poblacion_afectada,
             'porcentaje_afectacion': factor_afectacion * 100,
-            'distancia_impacto': distancia
+            'distancia_impacto': distancia,
+            'poblacion_total': poblacion_real
         }
         poblacion_total_afectada += poblacion_afectada
     
@@ -432,74 +426,77 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
         "radio_destruccion_total": radio_destruccion_total,
         "radio_destruccion_parcial": radio_destruccion_parcial,
         "poblacion_total_afectada": poblacion_total_afectada,
-        "zonas_afectadas": zonas_afectadas,
+        "provincias_afectadas": provincias_afectadas,
         "punto_impacto": (punto_impacto_x, punto_impacto_y)
     }
 
+# Cargar imagen de China
+imagen_china = cargar_imagen_china()
+
 # Sidebar para controles
 with st.sidebar:
-    st.header("Controles de Simulacion")
+    st.header("Controles de Simulación")
     
     st.subheader("Asteroide")
-    diametro = st.slider("Diametro (metros)", 100, 5000, 1000)
+    diametro = st.slider("Diámetro (metros)", 100, 5000, 1000)
     velocidad = st.slider("Velocidad (km/s)", 10, 100, 50)
     
-    st.subheader("Punto de Impacto")
-    punto_impacto_x = st.slider("Coordenada X", 0, 100, 50)
-    punto_impacto_y = st.slider("Coordenada Y", 0, 100, 50)
+    st.subheader("Punto de Impacto en China")
+    punto_impacto_x = st.slider("Longitud Este", 30, 125, 80)
+    punto_impacto_y = st.slider("Latitud Norte", 5, 65, 35)
     
-    # Mostrar zona de impacto
-    zona_impacto = "Fuera de zonas pobladas"
+    # Mostrar provincia de impacto
+    provincia_impacto = "Mar/Área despoblada"
     min_dist = float('inf')
-    for zona_id, zona in datos_densidad.items():
-        coords = zona['coordenadas']
+    for provincia_id, provincia in poblacion_china.items():
+        coords = provincia['coordenadas']
         centro_x = (coords['x_min'] + coords['x_max']) / 2
         centro_y = (coords['y_min'] + coords['y_max']) / 2
         distancia = np.sqrt((centro_x - punto_impacto_x)**2 + (centro_y - punto_impacto_y)**2)
         if distancia < min_dist:
             min_dist = distancia
-            zona_impacto = zona['nombre']
+            provincia_impacto = provincia['nombre']
     
-    st.info(f"Zona mas cercana: {zona_impacto}")
+    st.info(f"Provincia más cercana: {provincia_impacto}")
     
     st.subheader("Sistemas de Defensa")
     col1, col2 = st.columns(2)
     with col1:
-        defensa_laser = st.checkbox("Laser")
+        defensa_laser = st.checkbox("Láser")
         desviacion_nuclear = st.checkbox("Nuclear")
     with col2:
         tractor_gravitatorio = st.checkbox("Tractor")
         escudo_atmosferico = st.checkbox("Escudo")
 
-# Mostrar informacion de zonas
-st.subheader("Zonas de Densidad Poblacional")
+# Mostrar información de provincias
+st.subheader("Provincias de China - Datos Poblacionales")
 
 cols = st.columns(3)
-for i, (zona_id, zona) in enumerate(datos_densidad.items()):
+for i, (provincia_id, provincia) in enumerate(poblacion_china.items()):
     with cols[i % 3]:
         st.markdown(f"""
         <div class="district-card">
-        <h4>{zona['nombre']}</h4>
-        <p>{zona['poblacion']:,} habitantes</p>
-        <p>Densidad: {zona['densidad']}</p>
-        <p>{zona['descripcion']}</p>
+        <h4>{provincia['nombre']}</h4>
+        <p>{provincia['poblacion']:,} mil habitantes</p>
+        <p>{provincia['poblacion'] * 1000:,} personas</p>
+        <p>{provincia['descripcion']}</p>
         </div>
         """, unsafe_allow_html=True)
 
-# Mostrar mapa base con imagen de fondo
-st.subheader("Mapa con Imagen de Fondo y Densidad Poblacional")
-fig_base = crear_mapa_con_imagen(imagen_fondo)
+# Mostrar mapa base de China
+st.subheader("Mapa de China - Provincias y Puntos Críticos")
+fig_base = crear_mapa_china(imagen_china)
 st.pyplot(fig_base)
 
-# Boton de simulacion
+# Botón de simulación
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    if st.button("SIMULAR IMPACTO DE ASTEROIDE", use_container_width=True, type="primary"):
+    if st.button("SIMULAR IMPACTO EN CHINA", use_container_width=True, type="primary"):
         
         with st.spinner("Calculando trayectoria y impacto..."):
             time.sleep(3)
         
-        # Ejecutar simulacion
+        # Ejecutar simulación
         defensas = {
             "laser": defensa_laser,
             "nuclear": desviacion_nuclear,
@@ -507,13 +504,13 @@ with col2:
             "escudo": escudo_atmosferico
         }
         
-        resultado = simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y, defensas)
+        resultado = simular_impacto_china(diametro, velocidad, punto_impacto_x, punto_impacto_y, defensas)
         
         # Mostrar resultados
         st.markdown("---")
-        st.subheader("Resultados del Impacto")
+        st.subheader("Resultados del Impacto en China")
         
-        # SECCION DE ENERGIA
+        # SECCIÓN DE ENERGÍA
         st.markdown('<div class="energy-section">', unsafe_allow_html=True)
         
         valor_original, unidad_original = formatear_energia(resultado['energia_megatones'])
@@ -523,28 +520,28 @@ with col2:
         col_energia1, col_energia2, col_energia3 = st.columns(3)
         
         with col_energia1:
-            st.markdown(f'<div class="energy-metric">ENERGIA ORIGINAL</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ff6b6b;">{valor_original} {unidad_original}</div>', unsafe_allow_html=True)
             
         with col_energia2:
-            st.markdown(f'<div class="energy-metric">ENERGIA MITIGADA</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_mitigada} {unidad_mitigada}</div>', unsafe_allow_html=True)
-            st.metric("Reduccion", f"{resultado['reduccion']:.0f}%")
+            st.metric("Reducción", f"{resultado['reduccion']:.0f}%")
             
         with col_energia3:
-            st.markdown(f'<div class="energy-metric">ENERGIA DE IMPACTO</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">ENERGÍA DE IMPACTO</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ffa502;">{valor_impacto} {unidad_impacto}</div>', unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Mapa con impacto y asteroide
-        st.subheader("Mapa con Simulacion de Impacto")
+        st.subheader("Mapa con Simulación de Impacto")
         
-        # Calcular tamaño del asteroide para visualizacion
+        # Calcular tamaño del asteroide para visualización
         tamaño_asteroide_visual = min(3.0, diametro / 500)
         
-        fig_impacto = crear_mapa_con_imagen(
-            imagen_fondo,
+        fig_impacto = crear_mapa_china(
+            imagen_china,
             mostrar_asteroide=True,
             pos_asteroide=resultado['punto_impacto'],
             tamaño_asteroide=tamaño_asteroide_visual
@@ -553,94 +550,101 @@ with col2:
         # Dibujar zonas de impacto en el mapa
         ax_impacto = fig_impacto.axes[0]
         
-        # Zona de destruccion total
+        # Zona de destrucción total
         impacto_total = Circle(resultado['punto_impacto'], 
-                              resultado['radio_destruccion_total'] / 10,
+                              resultado['radio_destruccion_total'],
                               fill=False, color='red', linewidth=3, linestyle='--',
-                              label='Zona Destruccion Total')
+                              label='Zona Destrucción Total')
         ax_impacto.add_patch(impacto_total)
         
-        # Zona de danos parciales
+        # Zona de daños parciales
         impacto_parcial = Circle(resultado['punto_impacto'],
-                                resultado['radio_destruccion_parcial'] / 10,
+                                resultado['radio_destruccion_parcial'],
                                 fill=False, color='orange', linewidth=2, linestyle=':',
-                                label='Zona Danos Parciales')
+                                label='Zona Daños Parciales')
         ax_impacto.add_patch(impacto_parcial)
         
         ax_impacto.legend(loc='upper right', bbox_to_anchor=(1.15, 0.8))
         
         st.pyplot(fig_impacto)
         
-        # Poblacion afectada por zona
-        st.subheader("Poblacion Afectada por Zona")
+        # Población afectada por provincia
+        st.subheader("Población Afectada por Provincia")
         
-        cols_afectados = st.columns(3)
-        for i, (zona_id, datos) in enumerate(resultado['zonas_afectadas'].items()):
-            zona = datos_densidad[zona_id]
-            with cols_afectados[i % 3]:
-                st.metric(
-                    f"{zona['nombre']}",
-                    f"{datos['poblacion_afectada']:,} hab.",
-                    f"{datos['porcentaje_afectacion']:.1f}% afectado"
-                )
+        # Crear tabla de resultados
+        datos_tabla = []
+        for provincia_id, datos in resultado['provincias_afectadas'].items():
+            provincia = poblacion_china[provincia_id]
+            datos_tabla.append({
+                'Provincia': provincia['nombre'],
+                'Población Total': f"{provincia['poblacion'] * 1000:,}",
+                'Población Afectada': f"{datos['poblacion_afectada']:,}",
+                '% Afectado': f"{datos['porcentaje_afectacion']:.1f}%",
+                'Distancia (km)': f"{datos['distancia_impacto'] * 100:.0f}"
+            })
         
-        # Evaluacion general
-        st.subheader("Evaluacion del Impacto")
+        # Mostrar tabla
+        df_resultados = pd.DataFrame(datos_tabla)
+        st.dataframe(df_resultados, use_container_width=True)
         
-        poblacion_total = sum([zona['poblacion'] for zona in datos_densidad.values()])
-        porcentaje_poblacion_afectada = (resultado['poblacion_total_afectada'] / poblacion_total) * 100
+        # Evaluación general
+        st.subheader("Evaluación del Impacto en China")
         
-        if porcentaje_poblacion_afectada > 40:
-            st.markdown("""
+        poblacion_total_china = sum([provincia['poblacion'] * 1000 for provincia in poblacion_china.values()])
+        porcentaje_poblacion_afectada = (resultado['poblacion_total_afectada'] / poblacion_total_china) * 100
+        
+        if porcentaje_poblacion_afectada > 20:
+            st.markdown(f"""
             <div class="impact-warning">
-            <h3>CATASTROFE CIVIL COMPLETA</h3>
-            <p>Impacto: Apocaliptico - Mas del 40% de la poblacion afectada</p>
-            <p>Poblacion afectada: {:,} personas</p>
-            <p>Consecuencias: Colapso total de infraestructura y servicios</p>
-            <p>Accion: Evacuacion total y respuesta internacional</p>
+            <h3>CATASTROFE NACIONAL COMPLETA</h3>
+            <p>Impacto: Apocalíptico - Más del 20% de la población afectada</p>
+            <p>Población afectada: {resultado['poblacion_total_afectada']:,} personas</p>
+            <p>Consecuencias: Colapso total de infraestructura y servicios a nivel nacional</p>
+            <p>Acción: Respuesta internacional masiva requerida</p>
             </div>
-            """.format(resultado['poblacion_total_afectada']), unsafe_allow_html=True)
-            
-        elif porcentaje_poblacion_afectada > 20:
-            st.markdown("""
-            <div class="impact-warning">
-            <h3>CATASTROFE REGIONAL</h3>
-            <p>Impacto: Devastador - Entre 20-40% de la poblacion afectada</p>
-            <p>Poblacion afectada: {:,} personas</p>
-            <p>Consecuencias: Danos severos en infraestructura critica</p>
-            <p>Accion: Respuesta nacional de emergencia</p>
-            </div>
-            """.format(resultado['poblacion_total_afectada']), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
         elif porcentaje_poblacion_afectada > 10:
-            st.markdown("""
+            st.markdown(f"""
             <div class="impact-warning">
-            <h3>DESASTRE URBANO MAYOR</h3>
-            <p>Impacto: Grave - Entre 10-20% de la poblacion afectada</p>
-            <p>Poblacion afectada: {:,} personas</p>
-            <p>Consecuencias: Danos significativos en areas especificas</p>
-            <p>Accion: Respuesta regional coordinada</p>
+            <h3>CATASTROFE REGIONAL MAYOR</h3>
+            <p>Impacto: Devastador - Entre 10-20% de la población afectada</p>
+            <p>Población afectada: {resultado['poblacion_total_afectada']:,} personas</p>
+            <p>Consecuencias: Daños severos en múltiples provincias</p>
+            <p>Acción: Respuesta nacional de emergencia total</p>
             </div>
-            """.format(resultado['poblacion_total_afectada']), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            
+        elif porcentaje_poblacion_afectada > 5:
+            st.markdown(f"""
+            <div class="impact-warning">
+            <h3>DESASTRE REGIONAL</h3>
+            <p>Impacto: Grave - Entre 5-10% de la población afectada</p>
+            <p>Población afectada: {resultado['poblacion_total_afectada']:,} personas</p>
+            <p>Consecuencias: Daños significativos en regiones específicas</p>
+            <p>Acción: Respuesta regional coordinada</p>
+            </div>
+            """, unsafe_allow_html=True)
             
         else:
-            st.markdown("""
+            st.markdown(f"""
             <div class="mitigation-success">
             <h3>IMPACTO CONTROLADO</h3>
-            <p>Impacto: Limitado - Menos del 10% de la poblacion afectada</p>
-            <p>Poblacion afectada: {:,} personas</p>
-            <p>Efectividad defensas: {:.1f}% de reduccion</p>
-            <p>Accion: Respuesta local y recuperacion</p>
+            <p>Impacto: Limitado - Menos del 5% de la población afectada</p>
+            <p>Población afectada: {resultado['poblacion_total_afectada']:,} personas</p>
+            <p>Efectividad defensas: {resultado['reduccion']:.1f}% de reducción</p>
+            <p>Acción: Respuesta local y recuperación</p>
             </div>
-            """.format(resultado['poblacion_total_afectada'], resultado['reduccion']), unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-# Informacion adicional
+# Información adicional
 st.markdown("---")
 st.info("""
-**Acerca de esta simulacion:**
-- Sistema carga automaticamente mapa_ciudad_fondo.png y mapa_densidad.png
-- Las zonas de densidad poblacional se superponen sobre la imagen
-- Los calculos consideran densidad poblacional y distancia al impacto
-- El asteroide es visible en el mapa durante la simulacion
-- Coordenadas van de 0 a 100 en ambos ejes para facilitar posicionamiento
+**Acerca de esta simulación:**
+- Sistema basado en datos reales de población de China
+- Las provincias se muestran con colores según densidad poblacional
+- Los cálculos consideran población real y distancia al impacto
+- El asteroide es visible en el mapa durante la simulación
+- Coordenadas representan posición aproximada en el mapa de China
+- Población total considerada: ~847 millones (10 provincias principales)
 """)
