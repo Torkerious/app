@@ -9,11 +9,11 @@ st.set_page_config(layout="wide")
 st.title("Laboratorio 3D con Modelos Pre-cargados 🧪")
 
 # Define la ruta a la carpeta de tus modelos
-MODELOS_DIR = "app"
+MODELOS_DIR = "app/"
 
 # Define el archivo 3D principal que se cargará por defecto
 # ¡CAMBIA ESTO POR LA RUTA DE TU ARCHIVO!
-RUTA_MODELO_PRINCIPAL = os.path.join(app, "tierra.glb") 
+RUTA_MODELO_PRINCIPAL = os.path.join("app/tierra.glb") 
 # Asegúrate de que 'tu_modelo_principal.stl' exista en la carpeta 'modelos_3d'
 
 # Inicializar o recuperar el estado de los modelos adicionales
