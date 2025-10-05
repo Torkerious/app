@@ -1,6 +1,6 @@
 import streamlit as st
 import os
-from streamlit-3d-model import st-3d-model # Requiere pip install streamlit-3d-model
+from streamlit_3d_model import st_3d_model # Requiere pip install streamlit-3d-model
 
 # --- Configuración y Ruta de Archivo ---
 st.set_page_config(layout="wide")
