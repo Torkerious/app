@@ -1,68 +1,37 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import os
+import base64
 
 # --- Configuración de Rutas de Archivo ---
-# Rutas locales (para verificación)
 MODELO_STL_PATH = "Earth.stl" 
 TEXTURA_PATH = "earth_texture.jpg" 
 
 
-# --- Función para generar URLs accesibles al navegador ---
+# --- Función para codificar archivos a Base64 ---
 
-@st.cache_data(show_spinner=False)
-def load_file_urls():
-    """Genera URLs temporales y accesibles para los archivos estáticos."""
-    if not os.path.exists(MODELO_STL_PATH) or not os.path.exists(TEXTURA_PATH):
-        st.error(f"❌ ¡CRÍTICO! Los archivos '{MODELO_STL_PATH}' y '{TEXTURA_PATH}' no se encontraron en la raíz de la aplicación.")
-        return None, None
-        
+def get_base64_data_url(file_path, mime_type):
+    """Codifica un archivo a una URL de datos Base64."""
+    if not os.path.exists(file_path):
+        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró.")
+        return None
     try:
-        # Streamlit genera un objeto File que se puede referenciar en HTML/JS
-        with open(MODELO_STL_PATH, 'rb') as f_stl, open(TEXTURA_PATH, 'rb') as f_tex:
-            stl_bytes = f_stl.read()
-            tex_bytes = f_tex.read()
-
-            # Usamos st.download_button para forzar a Streamlit a reconocer el archivo 
-            # y darle una URL, pero no realmente para que el usuario lo descargue.
-            # NOTA: Esto es un hack. En muchos entornos, usar st.write() puede funcionar,
-            # pero esto es más robusto.
-
-            # Crear un objeto temporal de archivo cargado
-            stl_file = st.uploaded_file_manager.UploadedFile(
-                id=hash(stl_bytes), name=MODELO_STL_PATH, size=len(stl_bytes), 
-                type='application/vnd.ms-pki.stl', data=stl_bytes
-            )
-            tex_file = st.uploaded_file_manager.UploadedFile(
-                id=hash(tex_bytes), name=TEXTURA_PATH, size=len(tex_bytes), 
-                type='image/jpeg', data=tex_bytes
-            )
-            
-            # Generar URLs directamente accesibles para el navegador
-            # Se usa st.runtime.get_instance()._uploaded_file_manager.get_url() en versiones modernas
-            # Usaremos una forma más simple y compatible con el contexto de `st.uploaded_file_manager`
-            
-            # Si el entorno no soporta esta manipulación interna, volvemos a la ruta simple
-            try:
-                model_url = st.uploaded_file_manager.get_url(stl_file.id)
-                texture_url = st.uploaded_file_manager.get_url(tex_file.id)
-            except Exception:
-                # Fallback a la ruta simple (si falla la manipulación interna)
-                model_url = MODELO_STL_PATH
-                texture_url = TEXTURA_PATH
-
-            return model_url, texture_url
-
+        with open(file_path, 'rb') as f:
+            file_bytes = f.read()
+            encoded = base64.b64encode(file_bytes).decode()
+            return f"data:{mime_type};base64,{encoded}"
     except Exception as e:
-        st.error(f"❌ Error al generar las URLs temporales: {e}")
-        return MODELO_STL_PATH, TEXTURA_PATH # Fallback
+        st.error(f"❌ Error al codificar {file_path} a Base64: {e}")
+        return None
 
-# Obtener las URLs
-MODEL_URL, TEXTURE_URL = load_file_urls()
+# Generar las URLs Base64 Data
+STL_DATA_URL = get_base64_data_url(MODELO_STL_PATH, 'application/vnd.ms-pki.stl')
+TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/jpeg')
+
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D con Textura (Three.js/HTML) 🌎")
+st.title("Visor 3D con Textura (Base64) 🌎")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -72,12 +41,12 @@ if 'cube_size' not in st.session_state:
 
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
-def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
+def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_size):
     """
-    Genera el código HTML/JS que configura el visor Three.js con la URL obtenida.
+    Genera el código HTML/JS, inyectando el modelo y la textura como URLs Base64.
     """
     # Si las URLs son None, significa que los archivos no existen y ya se mostró un error.
-    if model_url is None: return ""
+    if model_data_url is None: return ""
     
     HTML_CODE = f"""
     <!DOCTYPE html>
@@ -99,8 +68,8 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
         <script>
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
-            const modelURL = '{model_url}';
-            const textureURL = '{texture_url}';
+            const modelURL = '{model_data_url}';
+            const textureURL = '{texture_data_url}';
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
             
@@ -129,7 +98,7 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
                 const textureLoader = new THREE.TextureLoader();
                 const stlLoader = new THREE.STLLoader();
 
-                // Cargar Textura y Modelo (usando la URL segura generada)
+                // Cargar Textura y Modelo (usando la URL Base64 Data)
                 textureLoader.load(textureURL, function(texture) {{
                     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
                     
@@ -158,10 +127,11 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
                         controls.update();
                         
                     }}, undefined, function(error) {{
-                        console.error('Error al cargar el STL con la URL segura:', error);
+                        console.error('Error al cargar el STL (Base64):', error);
+                        // Esto podría indicar un STL corrupto o demasiado grande para Base64.
                     }});
                 }}, undefined, function(error) {{
-                     console.error('Error al cargar la textura con la URL segura.', error);
+                     console.error('Error al cargar la textura (Base64).', error);
                      // Fallback: Si la textura falla, intentar cargar el STL con un color plano
                      stlLoader.load(modelURL, function(geometry) {{
                          geometry.center(); 
@@ -217,7 +187,7 @@ else:
     st.session_state.show_cube = False
 
 
-html_code = generate_threejs_viewer(MODEL_URL, TEXTURE_URL, st.session_state.show_cube, st.session_state.cube_size)
+html_code = generate_threejs_viewer(STL_DATA_URL, TEXTURE_DATA_URL, st.session_state.show_cube, st.session_state.cube_size)
 
 components.html(
     html_code,
@@ -227,9 +197,12 @@ components.html(
 
 st.markdown("""
 ---
-### ¡Éxito Final! 🚀
-Este código utiliza la técnica más avanzada para asegurar la accesibilidad de archivos en Streamlit, resolviendo los problemas de compatibilidad de `trimesh` y las rutas web.
+### Diagnóstico Final y Solución Base64 🚀
 
-* **Si la Tierra aparece**: El problema se ha resuelto con las URLs seguras.
-* **Si solo aparece el cubo**: El entorno de Streamlit está bloqueando incluso las URLs temporales, o hay un problema con el archivo **`Earth.stl`** (e.g., está corrupto o es un tipo de STL binario que Three.js no puede leer correctamente).
+* **El problema de compatibilidad ha terminado.** Este código usa **Base64** para incrustar los archivos directamente, evitando cualquier problema de `trimesh` o de rutas de archivo de Streamlit.
+* **Si la Tierra no aparece ahora**, solo hay dos posibilidades:
+    1.  El archivo **`Earth.stl` es extremadamente grande** (varios megabytes) y el navegador lo rechaza al estar codificado en Base64.
+    2.  El archivo **`Earth.stl` está dañado o tiene un formato que el cargador STL de Three.js (STLLoader) no puede interpretar**. (Por ejemplo, si fuera un STL binario mal formado).
+
+**Próximo paso:** Si la Tierra aún no aparece, te recomiendo **reemplazar `Earth.stl`** por un archivo de modelo 3D de Tierra en formato **GLB o OBJ** (si tienes las texturas) y usar el cargador GLTFLoader/OBJLoader de Three.js, ya que son más modernos y robustos.
 """)
