@@ -118,6 +118,14 @@ st.markdown("""
         margin: 1rem 0;
         font-size: 0.9rem;
     }
+    .saved-energy {
+        background: linear-gradient(45deg, #00d2d3, #54a0ff);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        border: 2px solid #00b894;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -207,7 +215,7 @@ posiciones_defensa = [
 def formatear_energia(energia_megatones):
     """Convierte la energía a formato legible con comparaciones"""
     if energia_megatones >= 1000:
-        return f"{energia_megatones/1000:.0f} Gigatones", "GT"
+        return f"{energia_megatones/1000:.1f}", "GT"
     elif energia_megatones >= 100:
         return f"{energia_megatones:.0f}", "MT"
     elif energia_megatones >= 10:
@@ -215,7 +223,7 @@ def formatear_energia(energia_megatones):
     elif energia_megatones >= 1:
         return f"{energia_megatones:.1f}", "MT"
     else:
-        return f"{energia_megatones:.1f}", "MT"
+        return f"{energia_megatones:.2f}", "MT"
 
 # Función para obtener comparación histórica
 def obtener_comparacion_historica(energia_megatones):
@@ -406,6 +414,7 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
     radio_destruccion_total *= (1 - reduccion)
     radio_destruccion_parcial *= (1 - reduccion)
     energia_final = energia_megatones * (1 - reduccion)
+    energia_mitigada = energia_megatones - energia_final  # CORRECCIÓN: Energía que se evitó
     
     # Calcular daños a la ciudad
     ciudad = generar_ciudad(densidad)
@@ -427,6 +436,7 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
     return {
         "energia_megatones": energia_megatones,
         "energia_final": energia_final,
+        "energia_mitigada": energia_mitigada,  # NUEVO: Energía que se evitó
         "reduccion": reduccion * 100,
         "radio_destruccion_total": radio_destruccion_total,
         "radio_destruccion_parcial": radio_destruccion_parcial,
@@ -488,25 +498,40 @@ with col2:
         # Mostrar resultados
         st.subheader("📊 Reporte de Impacto Urbano")
         
-        # SECCIÓN ESPECIAL DE ENERGÍA DEL IMPACTO
+        # SECCIÓN ESPECIAL DE ENERGÍA DEL IMPACTO - CORREGIDA
         st.markdown('<div class="energy-section">', unsafe_allow_html=True)
         
-        # Formatear energía original
+        # Formatear energías
         valor_original, unidad_original = formatear_energia(resultado['energia_megatones'])
-        valor_final, unidad_final = formatear_energia(resultado['energia_final'])
+        valor_impacto, unidad_impacto = formatear_energia(resultado['energia_final'])
+        valor_mitigada, unidad_mitigada = formatear_energia(resultado['energia_mitigada'])
         comparacion, referencia = obtener_comparacion_historica(resultado['energia_megatones'])
-        valor_final = valor_original-valor_final
-        col_energia1, col_energia2 = st.columns(2)
+        
+        col_energia1, col_energia2, col_energia3 = st.columns(3)
         
         with col_energia1:
             st.markdown(f'<div class="energy-metric">💥 ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
-            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ffdd59;">{valor_original} {unidad_original}</div>', unsafe_allow_html=True)
-            st.metric("Diámetro Cráter", f"{resultado['radio_destruccion_total']*2:.0f} m")
+            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ff6b6b;">{valor_original} {unidad_original}</div>', unsafe_allow_html=True)
+            st.metric("Sin defensas", "100% potencial")
             
         with col_energia2:
             st.markdown(f'<div class="energy-metric">🛡️ ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
-            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_final} {unidad_final}</div>', unsafe_allow_html=True)
-            st.metric("Reducción Efectiva", f"{resultado['reduccion']:.0f}%")
+            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_mitigada} {unidad_mitigada}</div>', unsafe_allow_html=True)
+            st.metric("Energía evitada", f"{resultado['reduccion']:.0f}%")
+            
+        with col_energia3:
+            st.markdown(f'<div class="energy-metric">⚡ ENERGÍA DE IMPACTO</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ffa502;">{valor_impacto} {unidad_impacto}</div>', unsafe_allow_html=True)
+            st.metric("Energía real", f"{(100-resultado['reduccion']):.0f}%")
+        
+        # Mostrar energía salvada como información adicional
+        st.markdown(f"""
+        <div class="saved-energy">
+        <h4>🎯 EFECTO DE LAS DEFENSAS:</h4>
+        <p>Se <strong>evitaron {valor_mitigada} {unidad_mitigada}</strong> de energía destructiva gracias a los sistemas de defensa activados.</p>
+        <p>Esto representa una <strong>reducción del {resultado['reduccion']:.1f}%</strong> en la energía del impacto.</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Comparación histórica
         st.markdown('<div class="energy-comparison">', unsafe_allow_html=True)
