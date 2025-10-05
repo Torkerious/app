@@ -46,11 +46,48 @@ st.markdown("""
         border-radius: 10px;
         margin: 0.5rem 0;
     }
+    .config-section {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Título principal
 st.markdown('<h1 class="main-header">🌆 Simulador de Impacto en Ciudad</h1>', unsafe_allow_html=True)
+
+# SECCIÓN DE CONFIGURACIÓN - MULTIPLICADORES DE ESCALA
+st.markdown('<div class="config-section">', unsafe_allow_html=True)
+st.subheader("⚙️ Configuración de Escala de Edificios")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    multiplicador_ancho = st.slider(
+        "Multiplicador de Ancho de Edificios", 
+        min_value=0.5, 
+        max_value=5.0, 
+        value=2.5, 
+        step=0.1,
+        help="Ajusta qué tan anchos se ven los edificios en el mapa"
+    )
+
+with col2:
+    multiplicador_altura = st.slider(
+        "Multiplicador de Altura de Edificios", 
+        min_value=0.5, 
+        max_value=3.0, 
+        value=1.0, 
+        step=0.1,
+        help="Ajusta qué tan altos se ven los edificios en el mapa"
+    )
+
+# Mostrar preview de cómo se verán los edificios
+st.info(f"📐 **Vista previa de escala:** Ancho × {multiplicador_ancho:.1f}, Altura × {multiplicador_altura:.1f}")
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Definir colores de edificios
 colores_edificios = {
@@ -75,8 +112,8 @@ def generar_ciudad():
         x = random.uniform(0, 100)
         y = random.uniform(0, 100)
         tipo = random.choice(['residencial', 'comercial', 'industrial', 'rascacielos'])
-        altura = random.uniform(1, 3) if tipo == 'residencial' else random.uniform(2, 4) if tipo == 'comercial' else random.uniform(3, 6) if tipo == 'industrial' else random.uniform(5, 8)
-        ciudad['edificios'].append({'x': x, 'y': y, 'tipo': tipo, 'altura': altura})
+        altura_base = random.uniform(1, 3) if tipo == 'residencial' else random.uniform(2, 4) if tipo == 'comercial' else random.uniform(3, 6) if tipo == 'industrial' else random.uniform(5, 8)
+        ciudad['edificios'].append({'x': x, 'y': y, 'tipo': tipo, 'altura_base': altura_base})
     
     # Generar parques
     for _ in range(4):
@@ -233,7 +270,7 @@ with col2:
                    [carretera['y1'], carretera['y2']], 
                    'gray', linewidth=carretera['ancho'], alpha=0.7)
         
-        # Dibujar edificios - EDIFICIOS MÁS ANCHOS (MODIFICADO)
+        # Dibujar edificios - USANDO LOS MULTIPLICADORES DE ESCALA
         for edificio in ciudad['edificios']:
             distancia = np.sqrt((edificio['x'] - punto_impacto_x)**2 + (edificio['y'] - punto_impacto_y)**2)
             
@@ -248,10 +285,12 @@ with col2:
                 color = colores_edificios[edificio['tipo']]
                 alpha = 0.8
             
-            # EDIFICIOS MÁS ANCHOS: Cambié el ancho de 1 a 2.5
-            ancho_edificio = 2.5  # Ancho aumentado (antes era 1)
+            # APLICAR MULTIPLICADORES DE ESCALA
+            ancho_edificio = 1.0 * multiplicador_ancho  # Ancho base × multiplicador
+            altura_edificio = edificio['altura_base'] * multiplicador_altura  # Altura base × multiplicador
+            
             rect = Rectangle((edificio['x']-ancho_edificio/2, edificio['y']-0.5), 
-                           ancho_edificio, edificio['altura'],
+                           ancho_edificio, altura_edificio,
                            facecolor=color, alpha=alpha,
                            edgecolor='black', linewidth=0.5)
             ax.add_patch(rect)
@@ -284,6 +323,9 @@ with col2:
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         
         st.pyplot(fig)
+        
+        # Mostrar configuración aplicada
+        st.info(f"⚙️ **Configuración aplicada:** Ancho × {multiplicador_ancho:.1f}, Altura × {multiplicador_altura:.1f}")
         
         # Evaluación de resultados
         st.subheader("📈 Evaluación de Daños")
@@ -340,12 +382,16 @@ if resultado is None:
                        [carretera['y1'], carretera['y2']], 
                        'gray', linewidth=carretera['ancho'], alpha=0.7)
     
-    # EDIFICIOS MÁS ANCHOS en la vista previa también
+    # EDIFICIOS CON MULTIPLICADORES DE ESCALA en la vista previa también
     for edificio in ciudad_ejemplo['edificios']:
         color = colores_edificios[edificio['tipo']]
-        ancho_edificio = 2.5  # Mismo ancho aumentado
+        
+        # APLICAR MULTIPLICADORES DE ESCALA
+        ancho_edificio = 1.0 * multiplicador_ancho
+        altura_edificio = edificio['altura_base'] * multiplicador_altura
+        
         rect = Rectangle((edificio['x']-ancho_edificio/2, edificio['y']-0.5), 
-                       ancho_edificio, edificio['altura'],
+                       ancho_edificio, altura_edificio,
                        facecolor=color, alpha=0.8, edgecolor='black', linewidth=0.5)
         ax_ejemplo.add_patch(rect)
     
