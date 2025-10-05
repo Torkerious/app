@@ -1,3 +1,4 @@
+pip>=24.0
 pip install --upgrade pip
 streamlit
 plotly
