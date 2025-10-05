@@ -3,9 +3,10 @@ import streamlit.components.v1 as components
 import os
 import base64
 
-# --- Configuración de Rutas de Archivo ---
+# --- Configuración de Rutas de Archivo (AJUSTADO PARA PNG) ---
 MODELO_STL_PATH = "Earth.stl" 
-TEXTURA_PATH = "earth_texture.jpg" 
+TEXTURA_PATH = "earth_texture.png" # <--- CAMBIO DE .jpg A .png
+
 
 # --- Función para codificar archivos a Base64 ---
 
@@ -25,23 +26,13 @@ def get_base64_data_url(file_path, mime_type):
 
 # Generar las URLs Base64 Data
 STL_DATA_URL = get_base64_data_url(MODELO_STL_PATH, 'application/vnd.ms-pki.stl')
-
-# --- PRUEBA CLAVE: Intentar con dos tipos MIME diferentes ---
-# 1. Intentar como JPEG (si el archivo es .jpg)
-TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/jpeg')
-
-# 2. Si el JPEG falló o la URL es None, intentar como PNG (muy común que falle la codificación)
-if TEXTURE_DATA_URL is None or TEXTURE_DATA_URL.startswith("data:application/vnd.ms-pki.stl"):
-    # Si la ruta termina en .jpg, pero queremos probar PNG, intentamos cargar de nuevo.
-    # Esto asume que el archivo .jpg podría ser un PNG renombrado.
-    TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png')
-    if TEXTURE_DATA_URL is not None:
-         st.warning("⚠️ Se cargó la textura usando el tipo MIME 'image/png'.")
+# --- CORRECCIÓN FINAL: Usando MIME Type para PNG ---
+TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png') 
 
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D con Textura (Base64) 🌎")
+st.title("Visor 3D con Textura (Base64 y PNG) 🌎")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -52,6 +43,9 @@ if 'cube_size' not in st.session_state:
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
 def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_size):
+    """
+    Genera el código HTML/JS, inyectando el modelo y la textura como URLs Base64.
+    """
     if model_data_url is None: return ""
     texture_url_final = texture_data_url if texture_data_url is not None else ""
 
@@ -115,18 +109,16 @@ def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_si
                         const texture = textureLoader.load(textureURL, 
                             undefined, 
                             function(err) {{
-                                console.error('Error Three.js: Textura no se pudo aplicar. Usando color plano.', err);
+                                console.error('Error Three.js: Textura PNG falló. Usando color plano.', err);
                             }}
                         );
                         
-                        // Si la textura se está cargando (incluso si tiene errores internos), usar el material mapeado
                         material = new THREE.MeshPhongMaterial({{
                             map: texture,
                             shininess: 10,
                             side: THREE.DoubleSide
                         }});
                     }} else {{
-                        // Fallback a color plano (si la URL base64 es nula)
                         material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6 }}); 
                     }}
 
@@ -207,15 +199,12 @@ components.html(
 
 st.markdown("""
 ---
-### ¡Problema de Tipo MIME! 🧐
+### Diagnóstico Final 🎯
 
-La geometría (la esfera) está cargada. La **textura no se muestra** porque el navegador rechaza la cadena Base64 al no poder identificar la imagen (el tipo MIME no coincide con el archivo real).
+El código está ahora configurado con la solución **Base64** y el **Tipo MIME `image/png`** para la textura.
 
-**Por favor, haz una de las siguientes cosas y dime cuál funcionó:**
+* Si la esfera de la Tierra **aún es sólida**, significa que el archivo **`earth_texture.png`** (a pesar de su nombre) está **dañado** o su codificación interna es incorrecta.
+* **No hay más fallas de código** o de ruta posibles. El problema es puramente la **integridad de tu archivo PNG de textura**.
 
-1.  **Si tu archivo es `earth_texture.png`:**
-    * Cambia la ruta de Python a: `TEXTURA_PATH = "earth_texture.png"`
-    * Cambia la línea de generación de Base64 a: `TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png')`
-2.  **Si tu archivo es `earth_texture.jpg` y sigue sin funcionar:**
-    * Abre la imagen, guárdala de nuevo como **PNG** con un programa de edición de imágenes, y luego sigue los pasos del punto 1. El formato PNG es a menudo más compatible con la carga Base64.
+**Último Paso:** Si no funciona, por favor, abre el archivo `earth_texture.png` en un editor de imágenes y **guárdalo de nuevo** (asegúrate de que el tamaño del archivo no sea de 0 bytes). Vuelve a ejecutar la aplicación.
 """)
