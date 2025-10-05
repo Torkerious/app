@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 import trimesh
 import os
-import imageio.v2 as imageio 
+import imageio.v2 as imageio # Usamos v2 para evitar la DeprecationWarning
 
 # --- Configuración de Rutas de Archivo ---
 MODELOS_DIR = "modelos3d"
@@ -12,7 +12,7 @@ TEXTURA_PATH = os.path.join(MODELOS_DIR, "earth_texture.jpg")
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Laboratorio 3D: Aplicación de Textura con Plotly 🎨🌎 (Final Estable)")
+st.title("Laboratorio 3D: Aplicación de Textura con Plotly 🎨🌎 (Versión Estable)")
 
 if 'additional_traces' not in st.session_state:
     st.session_state.additional_traces = []
@@ -34,16 +34,12 @@ def crear_esfera(radio=8, color='red', center=(20, 20, 20)):
     z = center[2] + radio * np.outer(np.ones(np.size(u)), np.cos(v))
     return go.Surface(x=x, y=y, z=z, colorscale='Reds', showscale=False, opacity=0.9, name=f'Esfera {radio}')
 
-# --- 3. Función de Carga del Modelo STL con Textura Aplicada (Alternativa) ---
+# --- 3. Función de Carga del Modelo STL con Textura Aplicada (CORREGIDA FINAL ESTABLE) ---
 
 def load_stl_with_texture_for_plotly(stl_path, texture_path):
-    """Carga STL, aplica la textura y devuelve la traza Plotly."""
-    if not os.path.exists(stl_path):
-        st.error(f"❌ ¡ERROR! El archivo STL '{stl_path}' no se encontró.")
-        return None
-    
-    if not os.path.exists(texture_path):
-        st.error(f"❌ ¡ERROR! El archivo de textura '{texture_path}' no se encontró.")
+    """Carga STL, aplica la textura mediante mapeo de vértices y devuelve la traza Plotly."""
+    if not os.path.exists(stl_path) or not os.path.exists(texture_path):
+        st.error(f"❌ ¡ERROR! Archivo(s) no encontrado(s). Revisa {MODELO_STL_PATH} y {TEXTURA_PATH}.")
         return None
     
     try:
@@ -52,28 +48,34 @@ def load_stl_with_texture_for_plotly(stl_path, texture_path):
             if isinstance(mesh, trimesh.Scene):
                 mesh = trimesh.util.concatenate(mesh.dump(cached=True))
 
-            # 1. Leer la imagen de textura
             image = imageio.imread(texture_path)
-
-            # 2. Asignar la textura al objeto visual (Método más directo y fundamental)
-            # Esto requiere que el STL tenga coordenadas UV válidas (lo cual es raro en STL, pero necesario para mapear)
-            # Si el STL no tiene UVs, Trimesh intentará generarlos, lo cual puede fallar.
+            
+            # --- Corrección Final Estabilizada ---
+            
+            # 1. Asignar la textura directamente al visual de la malla
+            # Esto dispara el intento interno de Trimesh de calcular los UVs y colores
             mesh.visual = trimesh.visual.TextureVisuals(image=image)
-
-            # 3. Forzar el cálculo de los colores de los vértices (si el mapeo fue exitoso)
-            # Intentar acceder a los colores de los vértices calculados por Trimesh
-            if hasattr(mesh.visual, 'vertex_colors') and mesh.visual.vertex_colors is not None:
+            
+            # 2. Intentar obtener los colores de los vértices (si el mapeo fue exitoso)
+            # Nota: Esto solo funciona si el STL tenía coordenadas UV o Trimesh pudo generarlas.
+            
+            # Comprobar si mesh.visual.vertex_colors tiene los datos (es la propiedad final)
+            if mesh.visual.vertex_colors is not None and len(mesh.visual.vertex_colors) == len(mesh.vertices):
                 vertex_colors_int = mesh.visual.vertex_colors
+                st.info("Textura mapeada con éxito a los colores de los vértices.")
+            elif mesh.visual.material.image is not None and mesh.visual.uv is not None:
+                # Si los colores no están listos pero la UV y la imagen sí, forzar el cálculo:
+                # El método más robusto en Trimesh es convertir a un PolyData temporal y extraer los colores.
+                # Para simplificar y evitar dependencias de VTK, asumiremos que si la propiedad falla, usaremos el fallback.
+                st.warning("⚠️ Trimesh encontró la textura y UVs, pero el mapeo automático falló. Usando color plano.")
+                raise ValueError("Fallo en el mapeo de textura a colores de vértice.")
             else:
-                # Fallback: Si no hay colores de vértice, usar un color plano
-                st.warning("⚠️ El modelo STL no contenía coordenadas UV válidas o Trimesh no pudo generarlas. Se mostrará un color sólido.")
-                colors_hex = None 
-                color_plano = 'lightblue'
+                raise ValueError("El STL no tiene UVs válidos o el mapeo falló.")
 
-            if 'colors_hex' not in locals():
-                # Convertir el color [R, G, B, A] a '#RRGGBB'
-                colors_hex = ['#%02x%02x%02x' % tuple(c[:3]) for c in vertex_colors_int]
-                color_plano = None
+
+            # 3. Preparar el color para Plotly
+            colors_hex = ['#%02x%02x%02x' % tuple(c[:3]) for c in vertex_colors_int]
+            color_plano = None
             
             # 4. Crear la traza de Plotly
             trace = go.Mesh3d(
@@ -84,25 +86,35 @@ def load_stl_with_texture_for_plotly(stl_path, texture_path):
                 j=mesh.faces[:, 1], 
                 k=mesh.faces[:, 2],
                 vertexcolor=colors_hex, 
-                color=color_plano, # Se usa si vertexcolor es None (el fallback)
                 opacity=1.0,
                 name="Earth con Textura",
             )
         return trace
+    
     except Exception as e:
-        st.error(f"❌ Error interno al aplicar la textura: {e}")
-        st.info("La aplicación de textura a un STL sin UVs es difícil. Intenta actualizar `trimesh` o usar un archivo con UVs.")
-        return None
+        # Fallback si el mapeo de textura es complejo o el STL no tiene UVs
+        st.error(f"❌ Error en el proceso de mapeo: {e}")
+        st.info("Usando color plano (lightblue) como alternativa. Asegúrate de que el STL tenga coordenadas UV válidas.")
+        
+        # Generar una traza sin color de vértice
+        mesh = trimesh.load_mesh(stl_path)
+        if isinstance(mesh, trimesh.Scene): mesh = trimesh.util.concatenate(mesh.dump(cached=True))
+        
+        trace = go.Mesh3d(
+            x=mesh.vertices[:, 0], y=mesh.vertices[:, 1], z=mesh.vertices[:, 2],
+            i=mesh.faces[:, 0], j=mesh.faces[:, 1], k=mesh.faces[:, 2],
+            color='lightblue', opacity=0.7, name="Earth (Color Plano Fallback)"
+        )
+        return trace
 
 # --- 4. Carga del Modelo Principal y Creación de la Figura ---
-# (El resto del código de la aplicación permanece igual)
 main_trace = load_stl_with_texture_for_plotly(MODELO_STL_PATH, TEXTURA_PATH)
 fig = go.Figure()
 model_loaded = False
 
 if main_trace:
     fig.add_trace(main_trace)
-    st.sidebar.success("Modelo Earth.stl cargado con textura.")
+    st.sidebar.success("Modelo Earth.stl cargado.")
     model_loaded = True
 else:
     st.sidebar.warning("Solo se mostrarán los elementos adicionales si los añades.")
@@ -146,11 +158,3 @@ if model_loaded or st.session_state.additional_traces:
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("""
-    ---
-    ### Interacciones
-    * **Rotación:** Clic izquierdo y arrastrar.
-    * **Zoom:** Rueda del ratón.
-    * **Panorámica (Mover):** Clic derecho y arrastrar.
-    """)
