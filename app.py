@@ -7,7 +7,6 @@ import base64
 MODELO_STL_PATH = "Earth.stl" 
 TEXTURA_PATH = "earth_texture.jpg" 
 
-
 # --- Función para codificar archivos a Base64 ---
 
 def get_base64_data_url(file_path, mime_type):
@@ -26,7 +25,18 @@ def get_base64_data_url(file_path, mime_type):
 
 # Generar las URLs Base64 Data
 STL_DATA_URL = get_base64_data_url(MODELO_STL_PATH, 'application/vnd.ms-pki.stl')
+
+# --- PRUEBA CLAVE: Intentar con dos tipos MIME diferentes ---
+# 1. Intentar como JPEG (si el archivo es .jpg)
 TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/jpeg')
+
+# 2. Si el JPEG falló o la URL es None, intentar como PNG (muy común que falle la codificación)
+if TEXTURE_DATA_URL is None or TEXTURE_DATA_URL.startswith("data:application/vnd.ms-pki.stl"):
+    # Si la ruta termina en .jpg, pero queremos probar PNG, intentamos cargar de nuevo.
+    # Esto asume que el archivo .jpg podría ser un PNG renombrado.
+    TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png')
+    if TEXTURE_DATA_URL is not None:
+         st.warning("⚠️ Se cargó la textura usando el tipo MIME 'image/png'.")
 
 
 # --- 1. Configuración de Streamlit y Estado ---
@@ -42,13 +52,7 @@ if 'cube_size' not in st.session_state:
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
 def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_size):
-    """
-    Genera el código HTML/JS, inyectando el modelo y la textura como URLs Base64.
-    """
-    # Si las URLs son None, significa que los archivos no existen y ya se mostró un error.
     if model_data_url is None: return ""
-    
-    # Manejar el caso de que la textura sea None (por error de codificación)
     texture_url_final = texture_data_url if texture_data_url is not None else ""
 
     HTML_CODE = f"""
@@ -72,7 +76,7 @@ def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_si
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
             const modelURL = '{model_data_url}';
-            const textureURL = '{texture_url_final}'; // Usar la URL Base64 o string vacío
+            const textureURL = '{texture_url_final}'; 
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
             
@@ -106,32 +110,28 @@ def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_si
                     geometry.center(); 
                     
                     let material;
+                    
                     if (useTexture && textureURL) {{
-                        // Cargar la textura desde el Base64
                         const texture = textureLoader.load(textureURL, 
-                            // Success callback (no hacer nada especial aquí)
                             undefined, 
-                            // Error callback (si falla la textura, usar color plano)
                             function(err) {{
-                                console.error('Error al aplicar la textura. El MIME Type o la codificación Base64 pueden ser incorrectos. Usando color plano.', err);
-                                material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6 }}); 
+                                console.error('Error Three.js: Textura no se pudo aplicar. Usando color plano.', err);
                             }}
                         );
                         
-                        // Si la textura se cargó, usar material con textura
+                        // Si la textura se está cargando (incluso si tiene errores internos), usar el material mapeado
                         material = new THREE.MeshPhongMaterial({{
                             map: texture,
                             shininess: 10,
                             side: THREE.DoubleSide
                         }});
                     }} else {{
-                        // Fallback a color plano
+                        // Fallback a color plano (si la URL base64 es nula)
                         material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6 }}); 
                     }}
 
                     const mesh = new THREE.Mesh(geometry, material);
                     
-                    // Ajuste de escala para el modelo
                     const box = new THREE.Box3().setFromObject(mesh);
                     const size = box.getSize(new THREE.Vector3());
                     const maxDim = Math.max(size.x, size.y, size.z);
@@ -140,17 +140,15 @@ def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_si
                     
                     scene.add(mesh);
                     
-                    // Ajustar la cámara al tamaño del modelo cargado
                     camera.position.set(maxDim * scale * 1.5, 0, 0); 
                     controls.update();
                 }}
 
                 // Iniciar la carga del STL
                 stlLoader.load(modelURL, function(geometry) {{
-                    // Intentar cargar con textura (true)
                     loadEarth(geometry, true); 
                 }}, undefined, function(error) {{
-                    console.error('Error CRÍTICO al cargar el STL (Base64):', error);
+                    console.error('Error CRÍTICO al cargar el STL (Base64).', error);
                 }});
                 
 
@@ -160,7 +158,6 @@ def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_si
                     const cubeMaterial = new THREE.MeshBasicMaterial({{ color: 0x0000FF, transparent: true, opacity: 0.7 }});
                     const cube = new THREE.Mesh(geometry, cubeMaterial);
                     
-                    // Posicionamos el cubo para que siempre sea visible
                     cube.position.set(50, 50, 0); 
                     scene.add(cube);
                 }}
@@ -208,22 +205,17 @@ components.html(
     scrolling=False
 )
 
-# --- 4. Diagnóstico de Textura (Si el problema persiste) ---
-if TEXTURE_DATA_URL is None or TEXTURE_DATA_URL == "":
-    st.error("❌ La textura no se pudo codificar. Revisa los mensajes de error de Python.")
-else:
-    st.info("✅ Geometría de la Tierra cargada. Si solo ves una esfera sólida, **el problema es el Tipo MIME o la codificación de la textura.**")
-    st.markdown("""
-    ---
-    ### Solución de Textura (Si la Esfera es Sólida)
-    
-    Si ve la esfera pero sin textura, debe ser el formato de la imagen. **Intente lo siguiente:**
-    
-    1.  **Si su archivo es `.png`:**
-        * Cambie la línea de la ruta: `TEXTURA_PATH = "earth_texture.png"`
-        * Cambie la línea del MIME type: `TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png')`
-    
-    2.  **Si su archivo es `.jpg`:**
-        * Asegúrese de que el archivo es realmente un JPEG válido y no una imagen dañada.
-        * Intente usar el MIME type alternativo: `TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/webp')` (a veces funciona como *fallback*).
-    """)
+st.markdown("""
+---
+### ¡Problema de Tipo MIME! 🧐
+
+La geometría (la esfera) está cargada. La **textura no se muestra** porque el navegador rechaza la cadena Base64 al no poder identificar la imagen (el tipo MIME no coincide con el archivo real).
+
+**Por favor, haz una de las siguientes cosas y dime cuál funcionó:**
+
+1.  **Si tu archivo es `earth_texture.png`:**
+    * Cambia la ruta de Python a: `TEXTURA_PATH = "earth_texture.png"`
+    * Cambia la línea de generación de Base64 a: `TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png')`
+2.  **Si tu archivo es `earth_texture.jpg` y sigue sin funcionar:**
+    * Abre la imagen, guárdala de nuevo como **PNG** con un programa de edición de imágenes, y luego sigue los pasos del punto 1. El formato PNG es a menudo más compatible con la carga Base64.
+""")
