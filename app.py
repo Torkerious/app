@@ -224,27 +224,40 @@ def crear_meteorito(tamaño):
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     
-    # Crear gradiente radial oscuro
-    from matplotlib.colors import RadialGradient
-    gradient = RadialGradient((0.5, 0.5), 0.8, [
-        (0, '#8B0000'),      # Rojo oscuro en el centro
-        (0.4, '#8B4500'),    # Marrón rojizo
-        (0.7, '#654321'),    # Marrón oscuro
-        (1, '#2F4F4F')       # Gris oscuro en los bordes
-    ])
+    # Crear gradiente manual usando círculos concéntricos
+    # Círculo exterior (más oscuro)
+    exterior = Circle((0.5, 0.5), 0.4, 
+                     facecolor='#2F4F4F',  # Gris oscuro
+                     edgecolor='#000000', 
+                     linewidth=2,
+                     alpha=0.9)
+    ax.add_patch(exterior)
     
-    # Dibujar meteorito como círculo con gradiente
-    meteorito = Circle((0.5, 0.5), 0.4, 
-                      facecolor=gradient, 
-                      edgecolor='#000000', 
-                      linewidth=2,
-                      alpha=0.9)
-    ax.add_patch(meteorito)
+    # Círculo medio (marrón oscuro)
+    medio = Circle((0.5, 0.5), 0.3,
+                  facecolor='#654321',  # Marrón oscuro
+                  edgecolor='none',
+                  alpha=0.8)
+    ax.add_patch(medio)
+    
+    # Círculo interior (marrón rojizo)
+    interior = Circle((0.5, 0.5), 0.2,
+                     facecolor='#8B4500',  # Marrón rojizo
+                     edgecolor='none',
+                     alpha=0.9)
+    ax.add_patch(interior)
+    
+    # Núcleo (rojo oscuro)
+    nucleo = Circle((0.5, 0.5), 0.1,
+                   facecolor='#8B0000',  # Rojo oscuro
+                   edgecolor='none',
+                   alpha=1.0)
+    ax.add_patch(nucleo)
     
     # Efecto de brillo interno
-    brillo = Circle((0.3, 0.3), 0.1, 
-                   facecolor='#FF4500', 
-                   alpha=0.6)
+    brillo = Circle((0.35, 0.35), 0.05, 
+                   facecolor='#FF4500',  # Naranja rojizo
+                   alpha=0.7)
     ax.add_patch(brillo)
     
     # Efecto de estela
