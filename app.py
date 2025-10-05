@@ -3,7 +3,7 @@ import numpy as np
 import plotly.graph_objects as go
 import trimesh
 import os
-import imageio # Necesario para que trimesh pueda leer la textura
+import imageio.v2 as imageio # Necesario para que trimesh pueda leer la textura
 
 # --- Configuración de Rutas de Archivo ---
 MODELOS_DIR = "modelos3d"
