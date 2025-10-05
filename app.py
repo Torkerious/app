@@ -52,7 +52,7 @@ st.markdown("""
 # Título principal
 st.markdown('<h1 class="main-header">🌆 Simulador de Impacto en Ciudad</h1>', unsafe_allow_html=True)
 
-# Definir colores de edificios (CORREGIDO)
+# Definir colores de edificios
 colores_edificios = {
     'residencial': 'blue',
     'comercial': 'orange', 
@@ -233,7 +233,7 @@ with col2:
                    [carretera['y1'], carretera['y2']], 
                    'gray', linewidth=carretera['ancho'], alpha=0.7)
         
-        # Dibujar edificios (CORREGIDO - usando colores_edificios)
+        # Dibujar edificios - EDIFICIOS MÁS ANCHOS (MODIFICADO)
         for edificio in ciudad['edificios']:
             distancia = np.sqrt((edificio['x'] - punto_impacto_x)**2 + (edificio['y'] - punto_impacto_y)**2)
             
@@ -245,10 +245,13 @@ with col2:
                 color = 'red'  # Dañado
                 alpha = 0.6
             else:
-                color = colores_edificios[edificio['tipo']]  # CORREGIDO
+                color = colores_edificios[edificio['tipo']]
                 alpha = 0.8
             
-            rect = Rectangle((edificio['x']-0.5, edificio['y']-0.5), 1, edificio['altura'],
+            # EDIFICIOS MÁS ANCHOS: Cambié el ancho de 1 a 2.5
+            ancho_edificio = 2.5  # Ancho aumentado (antes era 1)
+            rect = Rectangle((edificio['x']-ancho_edificio/2, edificio['y']-0.5), 
+                           ancho_edificio, edificio['altura'],
                            facecolor=color, alpha=alpha,
                            edgecolor='black', linewidth=0.5)
             ax.add_patch(rect)
@@ -337,9 +340,12 @@ if resultado is None:
                        [carretera['y1'], carretera['y2']], 
                        'gray', linewidth=carretera['ancho'], alpha=0.7)
     
+    # EDIFICIOS MÁS ANCHOS en la vista previa también
     for edificio in ciudad_ejemplo['edificios']:
-        color = colores_edificios[edificio['tipo']]  # CORREGIDO
-        rect = Rectangle((edificio['x']-0.5, edificio['y']-0.5), 1, edificio['altura'],
+        color = colores_edificios[edificio['tipo']]
+        ancho_edificio = 2.5  # Mismo ancho aumentado
+        rect = Rectangle((edificio['x']-ancho_edificio/2, edificio['y']-0.5), 
+                       ancho_edificio, edificio['altura'],
                        facecolor=color, alpha=0.8, edgecolor='black', linewidth=0.5)
         ax_ejemplo.add_patch(rect)
     
