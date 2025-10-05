@@ -1,10 +1,8 @@
 pip>=24.0
-pip install --upgrade pip
 streamlit
 plotly
 numpy
 scipy
 trimesh
 streamlit-3d
-pip 
-pip install streamlit-3d-model
+streamlit-3d-model
