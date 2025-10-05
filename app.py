@@ -96,7 +96,7 @@ poblacion_china = {
     'guangdong': {
         'nombre': 'Guangdong',
         'poblacion': 126012,  # en miles (126 millones)
-        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 5, 'y_max': 15},
+        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 15, 'y_max': 25},
         'descripcion': 'Provincia más poblada de China'
     },
     'shandong': {
@@ -126,13 +126,13 @@ poblacion_china = {
     'hebei': {
         'nombre': 'Hebei',
         'poblacion': 75919,
-        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 30, 'y_max': 40},
+        'coordenadas': {'x_min': 100, 'x_max': 115, 'y_min': 30, 'y_max': 40},
         'descripcion': 'Rodeando Beijing'
     },
     'hunan': {
         'nombre': 'Hunan',
         'poblacion': 69185,
-        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 10, 'y_max': 20},
+        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 15, 'y_max': 25},
         'descripcion': 'Provincia central'
     },
     'anhui': {
@@ -144,13 +144,13 @@ poblacion_china = {
     'hubei': {
         'nombre': 'Hubei',
         'poblacion': 59172,
-        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 15, 'y_max': 25},
+        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 25, 'y_max': 35},
         'descripcion': 'China central'
     },
     'zhejiang': {
         'nombre': 'Zhejiang',
         'poblacion': 58500,
-        'coordenadas': {'x_min': 100, 'x_max': 115, 'y_min': 5, 'y_max': 15},
+        'coordenadas': {'x_min': 100, 'x_max': 115, 'y_min': 30, 'y_max': 40},
         'descripcion': 'Costa este desarrollada'
     }
 }
