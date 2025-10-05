@@ -52,10 +52,10 @@ def crear_esfera(radio=8, color='red', center=(15, 15, 15)):
         opacity=0.9, name=f'Esfera {radio}'
     )
 
-def load_mesh_from_path(file_path):
+def load_mesh_from_path("modelos3d/tierra.glb"):
     """Carga un archivo 3D y devuelve la traza go.Mesh3d."""
-    file_name = os.path.basename(file_path)
-    if not os.path.exists(file_path):
+    file_name = os.path.basename("modelos3d/tierra.glb")
+    if not os.path.exists("modelos3d/tierra.glb"):
         st.error(f"¡ERROR! El archivo '{file_name}' no se encontró en la ruta: {file_path}")
         return None
     
@@ -64,7 +64,7 @@ def load_mesh_from_path(file_path):
         file_type = file_name.split('.')[-1]
         
         # Cargar la malla
-        mesh = trimesh.load_mesh(file_path, file_type=file_type)
+        mesh = trimesh.load_mesh("modelos3d/tierra.glb", file_type=file_type)
 
         if isinstance(mesh, trimesh.Scene):
             mesh = trimesh.util.concatenate(mesh.dump(cached=True))
