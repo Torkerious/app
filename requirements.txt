@@ -5,4 +5,4 @@ numpy
 scipy
 trimesh
 stpyvista
-imageio
+imageio.v2
