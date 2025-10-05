@@ -3,21 +3,22 @@ import numpy as np
 import plotly.graph_objects as go
 import trimesh
 import os
+import imageio # Necesario para que trimesh pueda leer la textura
 
-# --- Configuración de Ruta de Archivo ---
+# --- Configuración de Rutas de Archivo ---
 MODELOS_DIR = "modelos3d"
-# Cambiamos a Earth.stl
-MODELO_PATH = os.path.join(MODELOS_DIR, "Earth.stl") 
+MODELO_STL_PATH = os.path.join(MODELOS_DIR, "Earth.stl") 
+TEXTURA_PATH = os.path.join(MODELOS_DIR, "earth_texture.jpg") 
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Laboratorio 3D: Carga de Earth.stl y Experimentación con Plotly 🌎")
+st.title("Laboratorio 3D: Aplicación de Textura con Plotly 🎨🌎")
 
-# Inicializar estado para trazas adicionales
 if 'additional_traces' not in st.session_state:
     st.session_state.additional_traces = []
 
 # --- 2. Funciones de Modelado (Elementos de Experimentación) ---
+# (Se mantienen las funciones crear_cubo y crear_esfera para la experimentación)
 
 def crear_cubo(size=10, color='blue', center=(-20, 0, 0)):
     """Crea un cubo para añadir como elemento adicional."""
@@ -25,8 +26,6 @@ def crear_cubo(size=10, color='blue', center=(-20, 0, 0)):
     x_base = np.array([-h, h, -h, h, -h, h, -h, h]) + center[0]
     y_base = np.array([-h, -h, h, h, -h, -h, h, h]) + center[1]
     z_base = np.array([-h, -h, -h, -h, h, h, h, h]) + center[2]
-    
-    # Definición de caras triangulares (índices)
     i = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2]; j = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3]; k = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6]
     
     return go.Mesh3d(
@@ -36,8 +35,7 @@ def crear_cubo(size=10, color='blue', center=(-20, 0, 0)):
 
 def crear_esfera(radio=8, color='red', center=(20, 20, 20)):
     """Crea una esfera para añadir como elemento adicional (usando Surface)."""
-    u = np.linspace(0, 2 * np.pi, 50)
-    v = np.linspace(0, np.pi, 50)
+    u = np.linspace(0, 2 * np.pi, 50); v = np.linspace(0, np.pi, 50)
     x = center[0] + radio * np.outer(np.cos(u), np.sin(v))
     y = center[1] + radio * np.outer(np.sin(u), np.sin(v))
     z = center[2] + radio * np.outer(np.ones(np.size(u)), np.cos(v))
@@ -48,25 +46,40 @@ def crear_esfera(radio=8, color='red', center=(20, 20, 20)):
         opacity=0.9, name=f'Esfera {radio}'
     )
 
-# --- 3. Función de Carga del Modelo STL ---
+# --- 3. Función de Carga del Modelo STL con Textura Aplicada ---
 
-def load_stl_for_plotly(file_path):
-    """Carga STL, lo convierte en una malla Plotly (go.Mesh3d)."""
-    if not os.path.exists(file_path):
-        st.error(f"❌ ¡ERROR! El archivo '{file_path}' no se encontró. Asegúrate de que la carpeta 'modelos3d' contiene 'Earth.stl'.")
+def load_stl_with_texture_for_plotly(stl_path, texture_path):
+    """Carga STL, aplica la textura y devuelve la traza Plotly."""
+    if not os.path.exists(stl_path):
+        st.error(f"❌ ¡ERROR! El archivo STL '{stl_path}' no se encontró.")
+        return None
+    
+    if not os.path.exists(texture_path):
+        st.error(f"❌ ¡ERROR! El archivo de textura '{texture_path}' no se encontró.")
         return None
     
     try:
-        with st.spinner(f"Procesando {os.path.basename(file_path)}..."):
-            # Cargar el modelo STL
-            # No necesitamos especificar file_type, trimesh lo detecta
-            mesh = trimesh.load_mesh(file_path)
+        with st.spinner(f"Cargando {os.path.basename(stl_path)} y aplicando textura..."):
+            # 1. Cargar la malla STL
+            mesh = trimesh.load_mesh(stl_path)
 
             if isinstance(mesh, trimesh.Scene):
-                # Combinar todas las mallas en una sola para Plotly
                 mesh = trimesh.util.concatenate(mesh.dump(cached=True))
 
-            # Crear la traza de Plotly (Mesh3d)
+            # 2. Leer la imagen de textura (necesita imageio)
+            image = imageio.imread(texture_path)
+
+            # 3. Mapear la textura a los vértices de la malla
+            # Esto es clave: Trimesh calcula un color para cada vértice basado en la imagen.
+            mesh.visual.set_texture_with_color(image)
+            
+            # Obtener los colores de los vértices (en formato RGBA o RGB)
+            # Necesitamos convertir de [0-255] a un formato que Plotly pueda manejar.
+            vertex_colors_int = mesh.visual.vertex_colors
+            # Convertir a colores hexadecimales, que Plotly acepta
+            colors_hex = ['#%02x%02x%02x' % tuple(c[:3]) for c in vertex_colors_int]
+
+            # 4. Crear la traza de Plotly (Mesh3d)
             trace = go.Mesh3d(
                 x=mesh.vertices[:, 0], 
                 y=mesh.vertices[:, 1], 
@@ -74,31 +87,32 @@ def load_stl_for_plotly(file_path):
                 i=mesh.faces[:, 0], 
                 j=mesh.faces[:, 1], 
                 k=mesh.faces[:, 2],
-                color='lightblue', # Color base para el STL
-                opacity=0.7,
-                name="Earth.stl",
+                # Asignar los colores mapeados a los vértices
+                vertexcolor=colors_hex, 
+                opacity=1.0,
+                name="Earth con Textura",
             )
         return trace
     except Exception as e:
-        st.error(f"❌ Error al procesar el archivo STL con trimesh: {e}")
+        st.error(f"❌ Error al aplicar la textura: {e}")
+        st.info("Revisa la imagen (debe ser JPG o PNG válido) y la estructura del STL.")
         return None
 
 # --- 4. Carga del Modelo Principal y Creación de la Figura ---
 
-main_trace = load_stl_for_plotly(MODELO_PATH)
+main_trace = load_stl_with_texture_for_plotly(MODELO_STL_PATH, TEXTURA_PATH)
 fig = go.Figure()
 model_loaded = False
 
 if main_trace:
     fig.add_trace(main_trace)
-    st.sidebar.success("Modelo principal 'Earth.stl' cargado.")
+    st.sidebar.success("Modelo Earth.stl cargado con textura.")
     model_loaded = True
 else:
     st.sidebar.warning("Solo se mostrarán los elementos adicionales si los añades.")
 
 
 # --- 5. Interfaz para Añadir Modelos de Experimentación ---
-
 st.sidebar.header("Añadir Geometría para Experimentación")
 
 model_options = {"Ninguno": None, "Esfera Roja": "esfera", "Cubo Azul": "cubo"}
@@ -111,7 +125,6 @@ if col_b1.button("Añadir Elemento", key='add_geo'):
         st.session_state.additional_traces.append(crear_esfera())
     elif model_options[selected_model] == "cubo":
         st.session_state.additional_traces.append(crear_cubo())
-    # Recarga para que la figura se actualice
     st.experimental_rerun() 
 
 if col_b2.button("Limpiar Adicionales", key='clear_geo'):
@@ -120,21 +133,15 @@ if col_b2.button("Limpiar Adicionales", key='clear_geo'):
 
 # --- 6. Renderizado Final ---
 
-# Añadir todos los trazos adicionales
 for trace in st.session_state.additional_traces:
     fig.add_trace(trace)
 
 if model_loaded or st.session_state.additional_traces:
-    # Obtener el rango de los ejes para centrar el modelo
-    # Este paso es importante ya que los modelos STL/GLB pueden tener rangos muy grandes.
-    # Si el modelo cargado es muy grande, Plotly lo centrará automáticamente.
-    
     fig.update_layout(
         scene=dict(
             xaxis=dict(title='X'),
             yaxis=dict(title='Y'),
             zaxis=dict(title='Z'),
-            # Mantiene las proporciones del mundo real
             aspectmode='data' 
         ),
         margin=dict(l=0, r=0, b=0, t=30),
@@ -143,13 +150,3 @@ if model_loaded or st.session_state.additional_traces:
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("""
-    ---
-    ### Interacciones
-    * **Rotación:** Clic izquierdo y arrastrar.
-    * **Zoom:** Rueda del ratón.
-    * **Panorámica (Mover):** Clic derecho y arrastrar.
-    """)
-else:
-    st.warning(f"No hay modelos para mostrar. Asegúrate de que el archivo 'Earth.stl' está en la carpeta '{MODELOS_DIR}'.")
