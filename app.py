@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from matplotlib.patches import Circle, Rectangle, Polygon
+from matplotlib.patches import Circle, Rectangle, Polygon, Wedge
 import time
 import random
 
@@ -97,6 +97,14 @@ colores_edificios = {
     'rascacielos': 'purple'
 }
 
+# Posiciones predefinidas para los iconos de defensa
+posiciones_defensa = [
+    {'x': 10, 'y': 90, 'tipo': 'laser'},
+    {'x': 90, 'y': 90, 'tipo': 'nuclear'},
+    {'x': 10, 'y': 10, 'tipo': 'tractor'},
+    {'x': 90, 'y': 10, 'tipo': 'escudo'}
+]
+
 # Generar mapa de ciudad
 def generar_ciudad():
     """Genera una ciudad aleatoria con diferentes tipos de edificios"""
@@ -104,7 +112,8 @@ def generar_ciudad():
         'edificios': [],
         'parques': [],
         'carreteras': [],
-        'zonas_residenciales': []
+        'zonas_residenciales': [],
+        'defensas': posiciones_defensa
     }
     
     # Generar edificios (posición x, posición y, tipo, altura)
@@ -133,6 +142,69 @@ def generar_ciudad():
     ]
     
     return ciudad
+
+# Función para dibujar iconos de defensa
+def dibujar_icono_defensa(ax, x, y, tipo_defensa, activa):
+    """Dibuja un icono de defensa en el mapa"""
+    color = 'green' if activa else 'red'
+    alpha = 0.8 if activa else 0.3
+    tamaño = 3
+    
+    if tipo_defensa == 'laser':
+        # Icono de láser (rayo)
+        puntos_laser = np.array([
+            [x, y + tamaño],
+            [x - tamaño/2, y - tamaño/2],
+            [x - tamaño/4, y - tamaño/4],
+            [x + tamaño/4, y - tamaño/4],
+            [x + tamaño/2, y - tamaño/2]
+        ])
+        poligono = Polygon(puntos_laser, closed=True, facecolor=color, alpha=alpha, edgecolor='black')
+        ax.add_patch(poligono)
+        ax.text(x, y - tamaño*0.8, '🔫', fontsize=12, ha='center', va='center')
+        
+    elif tipo_defensa == 'nuclear':
+        # Icono nuclear (explosión)
+        for i in range(8):
+            angulo = i * 45
+            radio = tamaño * 0.8
+            x1 = x + radio * np.cos(np.radians(angulo))
+            y1 = y + radio * np.sin(np.radians(angulo))
+            ax.plot([x, x1], [y, y1], color=color, linewidth=2, alpha=alpha)
+        circulo = Circle((x, y), tamaño*0.3, facecolor=color, alpha=alpha, edgecolor='black')
+        ax.add_patch(circulo)
+        ax.text(x, y, '☢️', fontsize=10, ha='center', va='center')
+        
+    elif tipo_defensa == 'tractor':
+        # Icono de tractor gravitatorio (campo de fuerza)
+        circulo = Circle((x, y), tamaño, fill=False, linewidth=2, 
+                        edgecolor=color, alpha=alpha, linestyle='--')
+        ax.add_patch(circulo)
+        circulo_pequeño = Circle((x, y), tamaño*0.3, facecolor=color, alpha=alpha, edgecolor='black')
+        ax.add_patch(circulo_pequeño)
+        ax.text(x, y, '🛰️', fontsize=10, ha='center', va='center')
+        
+    elif tipo_defensa == 'escudo':
+        # Icono de escudo (protección)
+        puntos_escudo = np.array([
+            [x, y + tamaño],
+            [x - tamaño, y - tamaño/2],
+            [x + tamaño, y - tamaño/2]
+        ])
+        poligono = Polygon(puntos_escudo, closed=True, facecolor=color, alpha=alpha, edgecolor='black')
+        ax.add_patch(poligono)
+        ax.text(x, y, '🛡️', fontsize=10, ha='center', va='center')
+    
+    # Etiqueta del sistema
+    nombres = {
+        'laser': 'Láser',
+        'nuclear': 'Nuclear', 
+        'tractor': 'Tractor',
+        'escudo': 'Escudo'
+    }
+    ax.text(x, y - tamaño*1.5, nombres[tipo_defensa], 
+            fontsize=8, ha='center', va='center', 
+            color=color, weight='bold' if activa else 'normal')
 
 # Función de simulación mejorada
 def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_impacto_y, defensas):
@@ -185,7 +257,8 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
         "edificios_destruidos": edificios_destruidos,
         "edificios_danados": edificios_danados,
         "poblacion_afectada": poblacion_afectada,
-        "ciudad": ciudad
+        "ciudad": ciudad,
+        "defensas_activas": defensas
     }
 
 # Sidebar para controles
@@ -295,6 +368,11 @@ with col2:
                            edgecolor='black', linewidth=0.5)
             ax.add_patch(rect)
         
+        # DIBUJAR ICONOS DE DEFENSA
+        for defensa in ciudad['defensas']:
+            activa = resultado['defensas_activas'][defensa['tipo']]
+            dibujar_icono_defensa(ax, defensa['x'], defensa['y'], defensa['tipo'], activa)
+        
         # Dibujar zona de impacto
         impacto = Circle((punto_impacto_x, punto_impacto_y), 
                         resultado['radio_destruccion_total'] / 100,
@@ -394,6 +472,18 @@ if resultado is None:
                        ancho_edificio, altura_edificio,
                        facecolor=color, alpha=0.8, edgecolor='black', linewidth=0.5)
         ax_ejemplo.add_patch(rect)
+    
+    # DIBUJAR ICONOS DE DEFENSA EN VISTA PREVIA (mostrar todos como disponibles)
+    defensas_previa = {
+        "laser": defensa_laser,
+        "nuclear": desviacion_nuclear,
+        "tractor": tractor_gravitatorio,
+        "escudo": escudo_atmosferico
+    }
+    
+    for defensa in ciudad_ejemplo['defensas']:
+        activa = defensas_previa[defensa['tipo']]
+        dibujar_icono_defensa(ax_ejemplo, defensa['x'], defensa['y'], defensa['tipo'], activa)
     
     ax_ejemplo.set_xlim(0, 100)
     ax_ejemplo.set_ylim(0, 100)
