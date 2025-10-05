@@ -1,163 +1,196 @@
 import streamlit as st
-import numpy as np
-import plotly.graph_objects as go
-import trimesh
+import streamlit.components.v1 as components
 import os
-import imageio.v2 as imageio 
 
 # --- Configuración de Rutas de Archivo ---
 MODELOS_DIR = "modelos3d"
 MODELO_STL_PATH = os.path.join(MODELOS_DIR, "Earth.stl") 
 TEXTURA_PATH = os.path.join(MODELOS_DIR, "earth_texture.jpg") 
 
+# URLs directas de los archivos para el código JavaScript
+# Nota: En entornos como Streamlit Community Cloud, los archivos en /mount/src/app son accesibles directamente
+# si la app está expuesta. Asumimos la ruta directa relativa.
+MODEL_URL = f"/{MODELOS_DIR}/Earth.stl"
+TEXTURE_URL = f"/{MODELOS_DIR}/earth_texture.jpg"
+
+
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Laboratorio 3D: Aplicación de Textura con Plotly 🎨🌎 (Estable)")
+st.title("Visor 3D con Textura (Three.js/HTML) 🌎")
 
-if 'additional_traces' not in st.session_state:
-    st.session_state.additional_traces = []
+# Estado para controlar la adición de objetos de experimentación
+if 'show_cube' not in st.session_state:
+    st.session_state.show_cube = False
+if 'cube_size' not in st.session_state:
+    st.session_state.cube_size = 10.0
 
-# --- 2. Funciones de Modelado (Elementos de Experimentación) ---
 
-def crear_cubo(size=10, color='blue', center=(-20, 0, 0)):
-    h = size / 2.0
-    x_base = np.array([-h, h, -h, h, -h, h, -h, h]) + center[0]
-    y_base = np.array([-h, -h, h, h, -h, -h, h, h]) + center[1]
-    z_base = np.array([-h, -h, -h, -h, h, h, h, h]) + center[2]
-    i = [7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2]; j = [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3]; k = [0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6]
-    return go.Mesh3d(x=x_base, y=y_base, z=z_base, i=i, j=k, k=j, color=color, opacity=0.8, name=f'Cubo {size}')
+# --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
-def crear_esfera(radio=8, color='red', center=(20, 20, 20)):
-    u = np.linspace(0, 2 * np.pi, 50); v = np.linspace(0, np.pi, 50)
-    x = center[0] + radio * np.outer(np.cos(u), np.sin(v))
-    y = center[1] + radio * np.outer(np.sin(u), np.sin(v))
-    z = center[2] + radio * np.outer(np.ones(np.size(u)), np.cos(v))
-    return go.Surface(x=x, y=y, z=z, colorscale='Reds', showscale=False, opacity=0.9, name=f'Esfera {radio}')
-
-# --- 3. Función de Carga del Modelo STL con Textura Aplicada (Método TO_COLOR) ---
-
-def load_stl_with_texture_for_plotly(stl_path, texture_path):
+def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
     """
-    Carga STL, asigna la textura y usa mesh.to_color() para obtener los colores de los vértices.
-    Este método es el más estable y universal en trimesh.
+    Genera el código HTML/JS que configura el visor Three.js.
     """
-    if not os.path.exists(stl_path) or not os.path.exists(texture_path):
-        st.error(f"❌ ¡ERROR! Archivo(s) no encontrado(s). Revisa {MODELO_STL_PATH} y {TEXTURA_PATH}.")
-        return None
+    if not os.path.exists(MODELO_STL_PATH):
+        return f"<p style='color:red;'>Error: El archivo {MODELO_STL_PATH} no se encontró en el servidor.</p>"
     
-    try:
-        with st.spinner(f"Cargando {os.path.basename(stl_path)} y aplicando textura..."):
-            mesh = trimesh.load_mesh(stl_path)
-            if isinstance(mesh, trimesh.Scene):
-                mesh = trimesh.util.concatenate(mesh.dump(cached=True))
-
-            image = imageio.imread(texture_path)
-            
-            # 1. Asignar la textura al visual de la malla
-            # Esto prepara la malla para el mapeo.
-            mesh.visual = trimesh.visual.TextureVisuals(image=image)
-            
-            # 2. Usar el método to_color() para forzar el cálculo de los colores de los vértices.
-            # Este es el método más estable y debe devolver una malla con los colores precalculados.
-            # Convertimos la malla a un nuevo objeto donde se ha calculado el color del vértice.
-            colored_mesh = mesh.to_color()
-            
-            # 3. Obtener los colores de los vértices de la nueva malla
-            # Los colores se almacenan en la propiedad `vertex_colors` del visual.
-            vertex_colors_int = colored_mesh.visual.vertex_colors
-
-            # 4. Preparar el color para Plotly
-            # Convertir el color [R, G, B, A] a '#RRGGBB'
-            colors_hex = ['#%02x%02x%02x' % tuple(c[:3]) for c in vertex_colors_int]
-            
-            st.success("Textura aplicada y colores de vértice extraídos con éxito.")
-
-            # 5. Crear la traza de Plotly
-            trace = go.Mesh3d(
-                x=mesh.vertices[:, 0], 
-                y=mesh.vertices[:, 1], 
-                z=mesh.vertices[:, 2],
-                i=mesh.faces[:, 0], 
-                j=mesh.faces[:, 1], 
-                k=mesh.faces[:, 2],
-                vertexcolor=colors_hex, 
-                opacity=1.0,
-                name="Earth con Textura",
-            )
-            return trace
-    
-    except Exception as e:
-        # Fallback si el mapeo de textura falla, por ejemplo, si el STL no tiene UVs.
-        st.error(f"❌ Error crítico en el mapeo de textura: {e}")
-        st.info("Mostrando color plano. La aplicación de texturas requiere que el STL tenga **Coordenadas UV** válidas.")
+    # El JavaScript está contenido en la variable HTML_CODE
+    HTML_CODE = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Three.js STL Viewer</title>
+        <style>
+            body {{ margin: 0; }}
+            canvas {{ display: block; }}
+        </style>
+    </head>
+    <body>
+        <div id="container" style="width: 100%; height: 600px;"></div>
         
-        # Generar una traza con color plano
-        mesh = trimesh.load_mesh(stl_path)
-        if isinstance(mesh, trimesh.Scene): mesh = trimesh.util.concatenate(mesh.dump(cached=True))
-        
-        trace = go.Mesh3d(
-            x=mesh.vertices[:, 0], y=mesh.vertices[:, 1], z=mesh.vertices[:, 2],
-            i=mesh.faces[:, 0], j=mesh.faces[:, 1], k=mesh.faces[:, 2],
-            color='lightblue', opacity=0.7, name="Earth (Color Plano Fallback)"
-        )
-        return trace
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
 
-# --- 4. Carga del Modelo Principal y Creación de la Figura ---
-main_trace = load_stl_with_texture_for_plotly(MODELO_STL_PATH, TEXTURA_PATH)
-fig = go.Figure()
-model_loaded = False
+        <script>
+            // --- Configuración de la Escena ---
+            let scene, camera, renderer, controls;
+            const container = document.getElementById('container');
+            const modelURL = '{model_url}';
+            const textureURL = '{texture_url}';
+            const showCube = {str(show_cube).lower()};
+            const cubeSize = {cube_size};
 
-if main_trace:
-    fig.add_trace(main_trace)
-    st.sidebar.success("Modelo Earth.stl cargado.")
-    model_loaded = True
+            function init() {{
+                // 1. Scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xFFFFFF); // Fondo blanco
+
+                // 2. Camera
+                camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 10000);
+                camera.position.set(0, 0, 150);
+                
+                // 3. Renderer
+                renderer = new THREE.WebGLRenderer({{ antialias: true }});
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                container.appendChild(renderer.domElement);
+
+                // 4. Lights
+                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.9);
+                scene.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.5);
+                directionalLight.position.set(100, 100, 100);
+                scene.add(directionalLight);
+
+                // 5. Controls
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                
+                // 6. Loaders
+                const textureLoader = new THREE.TextureLoader();
+                const stlLoader = new THREE.STLLoader();
+
+                // --- Cargar Textura ---
+                textureLoader.load(textureURL, function(texture) {{
+                    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+                    
+                    // --- Cargar Modelo STL ---
+                    stlLoader.load(modelURL, function(geometry) {{
+                        geometry.center(); // Centrar la geometría
+                        
+                        // Crear material con la textura
+                        const material = new THREE.MeshPhongMaterial({{
+                            map: texture,
+                            shininess: 10,
+                            side: THREE.DoubleSide
+                        }});
+
+                        const mesh = new THREE.Mesh(geometry, material);
+                        
+                        // Ajustar la escala si es necesario, basado en el tamaño del modelo
+                        const box = new THREE.Box3().setFromObject(mesh);
+                        const size = box.getSize(new THREE.Vector3());
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const scale = 100 / maxDim;
+                        mesh.scale.set(scale, scale, scale);
+                        
+                        scene.add(mesh);
+                        
+                        // Posicionar la cámara después de cargar y escalar
+                        camera.position.set(0, 0, maxDim * scale * 1.5);
+                        controls.update();
+                        
+                    }}, undefined, function(error) {{
+                        console.error('Error al cargar el STL:', error);
+                        // Fallback a material plano si falla la textura
+                        stlLoader.load(modelURL, function(geometry) {{
+                             geometry.center(); 
+                             const material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6 }}); // Color azul claro
+                             const mesh = new THREE.Mesh(geometry, material);
+                             scene.add(mesh);
+                        }});
+                    }});
+                }});
+
+                // --- Elemento de Experimentación (Cubo) ---
+                if (showCube) {{
+                    const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+                    const material = new THREE.MeshBasicMaterial({{ color: 0x0000FF, transparent: true, opacity: 0.7 }});
+                    const cube = new THREE.Mesh(geometry, material);
+                    cube.position.set(cubeSize * 2, cubeSize * 2, cubeSize * 2); // Posición inicial
+                    scene.add(cube);
+                }}
+
+                animate();
+            }}
+
+            function animate() {{
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }}
+            
+            // Lógica de redimensionamiento para Streamlit
+            function onWindowResize() {{
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }}
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            init();
+        </script>
+    </body>
+    </html>
+    """
+    return HTML_CODE
+
+# --- 3. Renderizado y Controles de Streamlit ---
+
+# Controles de experimentación en la barra lateral
+st.sidebar.header("Controles de Experimentación")
+
+if st.sidebar.checkbox("Mostrar Cubo de Análisis", key='cube_toggle', value=st.session_state.show_cube):
+    st.session_state.show_cube = True
+    st.session_state.cube_size = st.sidebar.slider("Tamaño del Cubo", 1.0, 50.0, 10.0, 1.0)
 else:
-    st.sidebar.warning("Solo se mostrarán los elementos adicionales si los añades.")
+    st.session_state.show_cube = False
 
 
-# --- 5. Interfaz para Añadir Modelos de Experimentación ---
-st.sidebar.header("Añadir Geometría para Experimentación")
+# Generar y mostrar el visor HTML/JS
+html_code = generate_threejs_viewer(MODEL_URL, TEXTURE_URL, st.session_state.show_cube, st.session_state.cube_size)
 
-model_options = {"Ninguno": None, "Esfera Roja": "esfera", "Cubo Azul": "cubo"}
-selected_model = st.sidebar.selectbox("Selecciona un elemento:", list(model_options.keys()))
+components.html(
+    html_code,
+    height=600,
+    scrolling=False
+)
 
-col_b1, col_b2 = st.sidebar.columns(2)
+st.markdown("""
+---
+### Nota Importante
+Este visor usa **HTML/JavaScript (Three.js)**. Es la solución más robusta para garantizar que la **textura** (`earth_texture.jpg`) se muestre correctamente en el modelo **STL** (o GLB), ya que evita la problemática API de `trimesh` en tu entorno.
 
-if col_b1.button("Añadir Elemento", key='add_geo'):
-    if model_options[selected_model] == "esfera":
-        st.session_state.additional_traces.append(crear_esfera())
-    elif model_options[selected_model] == "cubo":
-        st.session_state.additional_traces.append(crear_cubo())
-    st.experimental_rerun() 
-
-if col_b2.button("Limpiar Adicionales", key='clear_geo'):
-    st.session_state.additional_traces = []
-    st.experimental_rerun()
-
-# --- 6. Renderizado Final ---
-
-for trace in st.session_state.additional_traces:
-    fig.add_trace(trace)
-
-if model_loaded or st.session_state.additional_traces:
-    fig.update_layout(
-        scene=dict(
-            xaxis=dict(title='X'),
-            yaxis=dict(title='Y'),
-            zaxis=dict(title='Z'),
-            aspectmode='data' 
-        ),
-        margin=dict(l=0, r=0, b=0, t=30),
-        template='plotly_white',
-        height=700
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-    
-    st.markdown("""
-    ---
-    ### Interacciones
-    * **Rotación:** Clic izquierdo y arrastrar.
-    * **Zoom:** Rueda del ratón.
-    * **Panorámica (Mover):** Clic derecho y arrastrar.
-    """)
+* **Interacción:** Clic izquierdo para rotar, rueda para hacer zoom.
+* **Archivos:** Debes asegurar que `Earth.stl` y `earth_texture.jpg` son accesibles en la ruta relativa `modelos3d/` para que Three.js los cargue.
+""")
