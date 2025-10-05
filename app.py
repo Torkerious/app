@@ -3,32 +3,33 @@ import streamlit.components.v1 as components
 import os
 import base64
 
-# --- Configuración de Rutas de Archivo (STL simple) ---
+# --- Rutas de Archivo ---
 MODELO_STL_PATH = "Earth.stl" 
+TEXTURE_URL = "earth_texture.png" # <--- Usamos URL simple para el PNG (depende de config.toml)
 
-# --- Función para codificar archivos a Base64 ---
 
-def get_base64_data_url(file_path, mime_type):
-    """Codifica un archivo a una URL de datos Base64."""
+# --- Función para codificar SOLO el STL a Base64 ---
+def get_stl_base64_data_url(file_path):
+    """Codifica el STL a una URL de datos Base64."""
     if not os.path.exists(file_path):
-        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró. Asegúrate de que 'Earth.stl' está en la carpeta raíz.")
+        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró.")
         return None
     try:
         with open(file_path, 'rb') as f:
             file_bytes = f.read()
             encoded = base64.b64encode(file_bytes).decode()
-            return f"data:{mime_type};base64,{encoded}"
+            return f"data:application/vnd.ms-pki.stl;base64,{encoded}"
     except Exception as e:
         st.error(f"❌ Error al codificar {file_path} a Base64: {e}")
         return None
 
 # Generar la URL Base64 Data (SOLO EL STL)
-STL_DATA_URL = get_base64_data_url(MODELO_STL_PATH, 'application/vnd.ms-pki.stl')
+STL_DATA_URL = get_stl_base64_data_url(MODELO_STL_PATH)
 
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D: Carga Mínima (STL Base64) 🔴")
+st.title("Visor 3D: STL (Base64) + Textura (URL Simple) 🌍")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -38,9 +39,10 @@ if 'cube_size' not in st.session_state:
 
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
-def generate_threejs_viewer(stl_data_url, show_cube, cube_size):
+def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
     """
-    Carga solo la geometría STL con un color simple (sin textura).
+    Carga el STL (Base64) y la textura (URL) por separado,
+    y aplica la textura al material.
     """
     if stl_data_url is None: return ""
 
@@ -65,6 +67,7 @@ def generate_threejs_viewer(stl_data_url, show_cube, cube_size):
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
             const modelURL = '{stl_data_url}';
+            const textureURL = '{texture_url}'; // URL simple: earth_texture.png
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
             
@@ -90,18 +93,34 @@ def generate_threejs_viewer(stl_data_url, show_cube, cube_size):
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.target.set(0, 0, 0); 
                 
+                const textureLoader = new THREE.TextureLoader();
                 const stlLoader = new THREE.STLLoader();
 
-                // Cargar solo el STL (sin textura)
+                // 1. Cargar Textura con URL simple
+                const texture = textureLoader.load(textureURL, 
+                    undefined, 
+                    function(err) {{
+                        console.error('Error al cargar la textura PNG por URL simple. El archivo estático NO es accesible.', err);
+                    }}
+                );
+                
+                // 2. Cargar el STL y aplicar el material
                 stlLoader.load(modelURL, function(geometry) {{
                     geometry.center(); 
                     
-                    // Usar material simple (color azul)
-                    const material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6, side: THREE.DoubleSide }}); 
+                    // Usar material con textura
+                    const material = new THREE.MeshPhongMaterial({{ 
+                        map: texture, 
+                        side: THREE.DoubleSide 
+                    }}); 
 
                     const mesh = new THREE.Mesh(geometry, material);
                     
-                    // Ajuste de escala
+                    // ESTA ES LA CLAVE: Asegurarse de que el modelo tiene UVs si es STL
+                    // El STL no tiene UVs, por lo que Three.js no sabrá dónde poner la textura.
+                    // Para que esto funcione, el modelo DEBE ser OBJ o GLB con UVs. 
+                    // Si insistes en STL, esta parte fallará, y solo verás la esfera sólida.
+
                     const box = new THREE.Box3().setFromObject(mesh);
                     const size = box.getSize(new THREE.Vector3());
                     const maxDim = Math.max(size.x, size.y, size.z);
@@ -116,7 +135,7 @@ def generate_threejs_viewer(stl_data_url, show_cube, cube_size):
                 }}, undefined, function(error) {{
                     console.error('Error CRÍTICO al cargar el STL (Base64).', error);
                 }});
-                
+
 
                 // --- Elemento de Experimentación (Cubo) ---
                 if (showCube) {{
@@ -163,7 +182,7 @@ else:
     st.session_state.show_cube = False
 
 
-html_code = generate_threejs_viewer(STL_DATA_URL, st.session_state.show_cube, st.session_state.cube_size)
+html_code = generate_threejs_viewer(STL_DATA_URL, TEXTURE_URL, st.session_state.show_cube, st.session_state.cube_size)
 
 components.html(
     html_code,
@@ -173,12 +192,14 @@ components.html(
 
 st.markdown("""
 ---
-### Diagnóstico Final y Pasos a Seguir 💡
+### Conclusión Final y Única 📢
 
-Hemos vuelto a la configuración más simple que *sabemos* que funcionó anteriormente.
+**El problema ya no es el código ni la carga del archivo, sino el formato del modelo.**
 
-* Si la esfera de la Tierra **aparece (color azul sólido)**: El problema es definitivamente la **textura** (UVs/Base64/MIME Type). La solución es usar un modelo OBJ o GLB pequeño y probarlo de nuevo, sabiendo que la geometría funciona.
-* Si la esfera de la Tierra **NO aparece** (solo el cubo): El problema es el **tamaño y/o la integridad** del archivo `Earth.stl`. El archivo es **demasiado grande** para el método Base64 en tu entorno, o el archivo STL está **dañado**.
+* El **STL** (que ahora ves) **NO SOPORTA COORDENADAS UV** (el mapa para la textura). Three.js está cargando la textura, pero no sabe dónde ponerla en el STL, por lo que solo muestra el color base.
+* Si deseas ver la textura, **DEBES** usar un modelo **OBJ o GLB** que contenga las coordenadas UV.
 
-**Recomendación:** Descarga un modelo de la Tierra **OBJ o GLB** de muy baja resolución (menos de 500 KB) con textura incrustada y prueba de nuevo la solución GLB. Si ese modelo pequeño funciona, sabrás que el problema es el tamaño de tu archivo original.
+**Recomendación:** Busca un modelo de la Tierra en formato **GLB** de tamaño razonable y prueba con la última solución que te proporcioné para el GLB (la que falló, pero ahora que la carga Base64 del STL funciona, podría funcionar para un GLB bien formado).
+
+Si insistes en usar el STL, es **técnicamente imposible** que se vea la textura de manera correcta en el visor de Three.js sin añadir código JavaScript muy complejo para generar las coordenadas UV, lo cual está fuera del alcance de una solución simple. **El cambio de formato es obligatorio.**
 """)
