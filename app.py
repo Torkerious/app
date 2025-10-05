@@ -89,7 +89,7 @@ def load_mesh_from_path(file_path):
 
 # --- 2. Carga del Modelo Principal (Al inicio) ---
 
-main_trace = load_mesh_from_path(modelos3d/tierra.glb)
+main_trace = load_mesh_from_path("modelos3d/tierra.glb")
 fig = go.Figure()
 
 if main_trace:
