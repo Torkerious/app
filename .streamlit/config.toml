@@ -1,0 +1,13 @@
+[server]
+# Esto le dice a Streamlit que sirva los archivos de la carpeta raíz
+# como activos estáticos. Sin esto, el navegador no puede acceder a /Earth.obj
+enableCORS = true
+enableXsrfProtection = false 
+headless = true
+
+[global]
+# Indica la carpeta raíz como la que contiene los archivos estáticos
+# (o puedes crear una carpeta 'static_files' si lo prefieres)
+static_file_server_enabled = true
+# La línea de abajo (si es necesaria) permite servir desde la carpeta raíz.
+# No la usamos directamente, pero la configuración superior debería forzarlo.
