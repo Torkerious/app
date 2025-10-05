@@ -52,6 +52,14 @@ st.markdown("""
 # Título principal
 st.markdown('<h1 class="main-header">🌆 Simulador de Impacto en Ciudad</h1>', unsafe_allow_html=True)
 
+# Definir colores de edificios (CORREGIDO)
+colores_edificios = {
+    'residencial': 'blue',
+    'comercial': 'orange', 
+    'industrial': 'red',
+    'rascacielos': 'purple'
+}
+
 # Generar mapa de ciudad
 def generar_ciudad():
     """Genera una ciudad aleatoria con diferentes tipos de edificios"""
@@ -164,6 +172,9 @@ with st.sidebar:
     tractor_gravitatorio = st.checkbox("Tractor Gravitatorio", help="Nave que usa gravedad para desviación suave")
     escudo_atmosferico = st.checkbox("Escudo Atmosférico", help="Refuerzo de defensas atmosféricas")
 
+# Inicializar variable resultado
+resultado = None
+
 # Botón de simulación principal
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
@@ -222,14 +233,7 @@ with col2:
                    [carretera['y1'], carretera['y2']], 
                    'gray', linewidth=carretera['ancho'], alpha=0.7)
         
-        # Dibujar edificios
-        colores_edificios = {
-            'residencial': 'blue',
-            'comercial': 'orange', 
-            'industrial': 'red',
-            'rascacielos': 'purple'
-        }
-        
+        # Dibujar edificios (CORREGIDO - usando colores_edificios)
         for edificio in ciudad['edificios']:
             distancia = np.sqrt((edificio['x'] - punto_impacto_x)**2 + (edificio['y'] - punto_impacto_y)**2)
             
@@ -241,7 +245,7 @@ with col2:
                 color = 'red'  # Dañado
                 alpha = 0.6
             else:
-                color = colores_edificios[edificio['tipo']]
+                color = colores_edificios[edificio['tipo']]  # CORREGIDO
                 alpha = 0.8
             
             rect = Rectangle((edificio['x']-0.5, edificio['y']-0.5), 1, edificio['altura'],
@@ -315,8 +319,8 @@ with col4:
     st.markdown("**🟣 Rascacielos**")
     st.write("Edificios de gran altura")
 
-# Estadísticas de la ciudad (si no se ha simulado aún)
-if 'resultado' not in locals():
+# Mostrar ciudad de ejemplo si no hay simulación
+if resultado is None:
     st.info("🎯 **Instrucciones:** Ajusta los parámetros en el panel lateral y haz clic en 'SIMULAR IMPACTO URBANO' para ver los efectos en la ciudad.")
     
     # Mostrar ciudad de ejemplo
@@ -334,7 +338,7 @@ if 'resultado' not in locals():
                        'gray', linewidth=carretera['ancho'], alpha=0.7)
     
     for edificio in ciudad_ejemplo['edificios']:
-        color = colores_edificios[edificio['tipo']]
+        color = colores_edificios[edificio['tipo']]  # CORREGIDO
         rect = Rectangle((edificio['x']-0.5, edificio['y']-0.5), 1, edificio['altura'],
                        facecolor=color, alpha=0.8, edgecolor='black', linewidth=0.5)
         ax_ejemplo.add_patch(rect)
