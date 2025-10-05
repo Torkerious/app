@@ -520,9 +520,17 @@ with col2:
                 bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8), fontsize=8)
         st.pyplot(fig, use_container_width=True)
 
-        # Results table
+       # Results table
         df = pd.DataFrame.from_dict(result["provincias_afectadas"], orient='index')
         df_sorted = df.sort_values(by="affected_population", ascending=False)
 
         st.markdown("### Impact Results by Province")
-        st.
+        st.dataframe(
+            df_sorted[["province", "affected_population", "impact_share_%", "distance_to_impact", "total_population", "description"]],
+            use_container_width=True
+        )
+
+        # Top 5 affected
+        top5 = df_sorted.head(5)[["province", "affected_population", "impact_share_%", "distance_to_impact"]]
+        st.markdown("### Top 5 Most Affected Provinces")
+        st.table(top5.style.format({'affected_population': '{:,}', 'distance_to_impact': '{:.2f}', 'impact_share_%': '{:.1f}'}))
