@@ -9,7 +9,6 @@ TEXTURE_URL = "earth_texture.png"
 
 # --- Función para codificar SOLO el STL a Base64 ---
 def get_stl_base64_data_url(file_path):
-    """Codifica el STL a una URL de datos Base64."""
     if not os.path.exists(file_path):
         st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró.")
         return None
@@ -28,7 +27,7 @@ STL_DATA_URL = get_stl_base64_data_url(MODELO_STL_PATH)
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D: ¡Color Finalmente! 🌈")
+st.title("Visor 3D: Corrección de Color Final 🌈")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -72,22 +71,26 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 scene = new THREE.Scene();
                 scene.background = new THREE.Color(0xFFFFFF); 
 
-                camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 10000);
-                camera.position.copy(FALLBACK_CAMERA_POSITION);
-                
+                // Configuración global del renderizador (crucial para el color)
                 renderer = new THREE.WebGLRenderer({{ antialias: true }});
+                renderer.outputEncoding = THREE.sRGBEncoding; // <--- Crucial 1: Salida de color
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 container.appendChild(renderer.domElement);
 
+                camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 10000);
+                camera.position.copy(FALLBACK_CAMERA_POSITION);
+                
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.target.set(0, 0, 0); 
                 
                 const textureLoader = new THREE.TextureLoader();
                 const stlLoader = new THREE.STLLoader();
 
-                // 1. Cargar Textura con URL simple
+                // 1. Cargar Textura con ajustes de color
                 const texture = textureLoader.load(textureURL, 
                     function(tex) {{
+                        // --- Crucial 2: Forzar la codificación de la textura a sRGB ---
+                        tex.encoding = THREE.sRGBEncoding; 
                         tex.needsUpdate = true;
                     }}, 
                     undefined, 
@@ -100,10 +103,10 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 stlLoader.load(modelURL, function(geometry) {{
                     geometry.center(); 
                     
-                    // --- AJUSTE CRUCIAL: MeshBasicMaterial con color blanco ---
+                    // Usar material Básico (ignora luz)
                     const material = new THREE.MeshBasicMaterial({{ 
                         map: texture, 
-                        color: 0xFFFFFF, // <--- Color base blanco para no oscurecer la textura
+                        color: 0xFFFFFF, 
                         side: THREE.DoubleSide, 
                         needsUpdate: true 
                     }}); 
@@ -178,12 +181,3 @@ components.html(
     height=600,
     scrolling=False
 )
-
-st.markdown("""
----
-### ¡Éxito en el Diagnóstico! 🎉
-
-Si la textura se nota pero está oscura, casi siempre se debe a que el **color base del material no es blanco**. Al forzar `color: 0xFFFFFF` en el `MeshBasicMaterial`, aseguramos que la textura se muestre sin oscurecimientos.
-
-Si el problema persiste después de este cambio, significa que tu **archivo PNG** de textura en sí es el que tiene la mayoría de sus píxeles muy oscuros.
-""")
