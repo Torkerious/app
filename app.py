@@ -96,61 +96,61 @@ poblacion_china = {
     'guangdong': {
         'nombre': 'Guangdong',
         'poblacion': 126012,  # en miles (126 millones)
-        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 15, 'y_max': 25},
+        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 55, 'y_max': 15},
         'descripcion': 'Provincia más poblada de China'
     },
     'shandong': {
         'nombre': 'Shandong',
         'poblacion': 101527,
-        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 30, 'y_max': 40},
+        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 20, 'y_max': 30},
         'descripcion': 'Provincia costera del este'
     },
     'henan': {
         'nombre': 'Henan',
         'poblacion': 99365,
-        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 35, 'y_max': 45},
+        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 15, 'y_max': 25},
         'descripcion': 'Corazón de China central'
     },
     'jiangsu': {
         'nombre': 'Jiangsu',
         'poblacion': 84748,
-        'coordenadas': {'x_min': 95, 'x_max': 110, 'y_min': 25, 'y_max': 35},
+        'coordenadas': {'x_min': 95, 'x_max': 110, 'y_min': 15, 'y_max': 25},
         'descripcion': 'Zona económica desarrollada'
     },
     'sichuan': {
         'nombre': 'Sichuan',
         'poblacion': 83675,
-        'coordenadas': {'x_min': 55, 'x_max': 75, 'y_min': 30, 'y_max': 45},
+        'coordenadas': {'x_min': 55, 'x_max': 75, 'y_min': 20, 'y_max': 35},
         'descripcion': 'Provincia del suroeste'
     },
     'hebei': {
         'nombre': 'Hebei',
         'poblacion': 75919,
-        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 40, 'y_max': 50},
+        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 30, 'y_max': 40},
         'descripcion': 'Rodeando Beijing'
     },
     'hunan': {
         'nombre': 'Hunan',
         'poblacion': 69185,
-        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 20, 'y_max': 30},
+        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 10, 'y_max': 20},
         'descripcion': 'Provincia central'
     },
     'anhui': {
         'nombre': 'Anhui',
         'poblacion': 63236,
-        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 20, 'y_max': 30},
+        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 10, 'y_max': 20},
         'descripcion': 'Este de China'
     },
     'hubei': {
         'nombre': 'Hubei',
         'poblacion': 59172,
-        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 25, 'y_max': 35},
+        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 15, 'y_max': 25},
         'descripcion': 'China central'
     },
     'zhejiang': {
         'nombre': 'Zhejiang',
         'poblacion': 58500,
-        'coordenadas': {'x_min': 100, 'x_max': 115, 'y_min': 15, 'y_max': 25},
+        'coordenadas': {'x_min': 100, 'x_max': 115, 'y_min': 5, 'y_max': 15},
         'descripcion': 'Costa este desarrollada'
     }
 }
