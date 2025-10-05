@@ -383,7 +383,7 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
         "radio_destruccion_total": radio_destruccion_total,
         "radio_destruccion_parcial": radio_destruccion_parcial,
         "poblacion_total_afectada": poblacion_total_afectada,
-        "zonas_afectadas": zonas_afectadas,
+        "zonas_afectadas": zonas_afectadas,  # CORREGIDO: 'zonas_afectadas' no 'zonas_afectados'
         "punto_impacto": (punto_impacto_x, punto_impacto_y)
     }
 
@@ -520,11 +520,11 @@ with col2:
         
         st.pyplot(fig_impacto)
         
-        # Población afectada por zona
+        # Población afectada por zona - CORREGIDO: usar 'zonas_afectadas' no 'zonas_afectados'
         st.subheader("👥 Población Afectada por Zona")
         
         cols_afectados = st.columns(3)
-        for i, (zona_id, datos) in enumerate(resultado['zonas_afectados'].items()):
+        for i, (zona_id, datos) in enumerate(resultado['zonas_afectadas'].items()):  # CORREGIDO
             zona = datos_poblacion[zona_id]
             with cols_afectados[i % 3]:
                 st.metric(
