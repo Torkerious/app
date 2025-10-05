@@ -95,6 +95,29 @@ st.markdown("""
         margin: 0.8rem 0;
         border-left: 5px solid #f1c40f;
     }
+    .energy-section {
+        background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+        text-align: center;
+        border: 3px solid #ff4757;
+    }
+    .energy-metric {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    .energy-comparison {
+        background: linear-gradient(45deg, #3742fa, #5352ed);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -179,6 +202,40 @@ posiciones_defensa = [
     {'x': 10, 'y': 10, 'tipo': 'tractor'},
     {'x': 90, 'y': 10, 'tipo': 'escudo'}
 ]
+
+# Función para formatear energía en formato legible
+def formatear_energia(energia_megatones):
+    """Convierte la energía a formato legible con comparaciones"""
+    if energia_megatones >= 1000:
+        return f"{energia_megatones/1000:.0f} Gigatones", "GT"
+    elif energia_megatones >= 100:
+        return f"{energia_megatones:.0f}", "MT"
+    elif energia_megatones >= 10:
+        return f"{energia_megatones:.0f}", "MT"
+    elif energia_megatones >= 1:
+        return f"{energia_megatones:.1f}", "MT"
+    else:
+        return f"{energia_megatones:.1f}", "MT"
+
+# Función para obtener comparación histórica
+def obtener_comparacion_historica(energia_megatones):
+    """Devuelve una comparación con eventos históricos"""
+    if energia_megatones >= 10000:
+        return "💥 MÁS QUE EL ASTEROIDE QUE EXTINGUIÓ A LOS DINOSAURIOS", "10,000 MT"
+    elif energia_megatones >= 1000:
+        return "☄️ Comparable al Evento de Tunguska multiplicado x50", "1,000 MT"
+    elif energia_megatones >= 100:
+        return "💣 5 veces la bomba Tsar (la más poderosa jamás detonada)", "100 MT"
+    elif energia_megatones >= 50:
+        return "💣 Similar a la bomba Tsar (50 MT)", "50 MT"
+    elif energia_megatones >= 10:
+        return "💣 Como 500 bombas de Hiroshima", "10 MT"
+    elif energia_megatones >= 1:
+        return "💣 Como 50 bombas de Hiroshima", "1 MT"
+    elif energia_megatones >= 0.5:
+        return "💣 Similar a la bomba de Hiroshima", "0.5 MT"
+    else:
+        return "💣 Menor que una bomba nuclear típica", "0.1 MT"
 
 # Generar mapa de ciudad CON DENSIDAD
 def generar_ciudad(densidad):
@@ -431,6 +488,34 @@ with col2:
         # Mostrar resultados
         st.subheader("📊 Reporte de Impacto Urbano")
         
+        # SECCIÓN ESPECIAL DE ENERGÍA DEL IMPACTO
+        st.markdown('<div class="energy-section">', unsafe_allow_html=True)
+        
+        # Formatear energía original
+        valor_original, unidad_original = formatear_energia(resultado['energia_megatones'])
+        valor_final, unidad_final = formatear_energia(resultado['energia_final'])
+        comparacion, referencia = obtener_comparacion_historica(resultado['energia_megatones'])
+        
+        col_energia1, col_energia2 = st.columns(2)
+        
+        with col_energia1:
+            st.markdown(f'<div class="energy-metric">💥 ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ffdd59;">{valor_original} {unidad_original}</div>', unsafe_allow_html=True)
+            st.metric("Diámetro Cráter", f"{resultado['radio_destruccion_total']*2:.0f} m")
+            
+        with col_energia2:
+            st.markdown(f'<div class="energy-metric">🛡️ ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_final} {unidad_final}</div>', unsafe_allow_html=True)
+            st.metric("Reducción Efectiva", f"{resultado['reduccion']:.0f}%")
+        
+        # Comparación histórica
+        st.markdown('<div class="energy-comparison">', unsafe_allow_html=True)
+        st.markdown(f"**📊 COMPARACIÓN HISTÓRICA:** {comparacion}")
+        st.markdown(f"*Referencia: {referencia}*")
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
         # Información de densidad
         col_dens, col_edif, col_pob = st.columns(3)
         with col_dens:
@@ -441,16 +526,14 @@ with col2:
         with col_pob:
             st.metric("Densidad Aplicada", f"{densidad_poblacion}%")
         
-        # Métricas principales
-        col1, col2, col3, col4 = st.columns(4)
+        # Métricas principales (sin energía duplicada)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.metric("Energía del Impacto", f"{resultado['energia_megatones']:.2f} MT")
-        with col2:
             st.metric("Edificios Destruidos", f"{resultado['edificios_destruidos']}")
-        with col3:
+        with col2:
             st.metric("Edificios Dañados", f"{resultado['edificios_danados']}")
-        with col4:
+        with col3:
             st.metric("Población Afectada", f"{resultado['poblacion_afectada']}")
         
         # Visualización del mapa de impacto
@@ -539,7 +622,7 @@ with col2:
         with col_conf2:
             st.info(f"👥 **Densidad aplicada:** {densidad_poblacion}% - {tipo_ciudad}")
         
-        # EVALUACIÓN DE DAÑOS MEJORADA - SECCIÓN MÁS ANCHA
+        # EVALUACIÓN DE DAÑOS MEJORADA
         st.markdown("---")
         st.markdown('<div class="evaluation-section">', unsafe_allow_html=True)
         st.subheader("📈 Evaluación de Daños y Recomendaciones")
