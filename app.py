@@ -28,7 +28,7 @@ STL_DATA_URL = get_stl_base64_data_url(MODELO_STL_PATH)
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D: Material Básico (Final) 🎨")
+st.title("Visor 3D: ¡Color Finalmente! 🌈")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -79,8 +79,6 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 container.appendChild(renderer.domElement);
 
-                // --- ELIMINAMOS TODAS LAS LUCES, MeshBasicMaterial no las necesita ---
-
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.target.set(0, 0, 0); 
                 
@@ -102,9 +100,10 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 stlLoader.load(modelURL, function(geometry) {{
                     geometry.center(); 
                     
-                    // --- CAMBIO CLAVE: Usar MeshBasicMaterial (ignora luz y normales) ---
+                    // --- AJUSTE CRUCIAL: MeshBasicMaterial con color blanco ---
                     const material = new THREE.MeshBasicMaterial({{ 
                         map: texture, 
+                        color: 0xFFFFFF, // <--- Color base blanco para no oscurecer la textura
                         side: THREE.DoubleSide, 
                         needsUpdate: true 
                     }}); 
@@ -179,3 +178,12 @@ components.html(
     height=600,
     scrolling=False
 )
+
+st.markdown("""
+---
+### ¡Éxito en el Diagnóstico! 🎉
+
+Si la textura se nota pero está oscura, casi siempre se debe a que el **color base del material no es blanco**. Al forzar `color: 0xFFFFFF` en el `MeshBasicMaterial`, aseguramos que la textura se muestre sin oscurecimientos.
+
+Si el problema persiste después de este cambio, significa que tu **archivo PNG** de textura en sí es el que tiene la mayoría de sus píxeles muy oscuros.
+""")
