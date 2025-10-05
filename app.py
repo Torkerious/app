@@ -103,7 +103,7 @@ poblacion_china = {
     'shandong': {
         'nombre': 'Shandong',
         'poblacion': 101527,
-        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 25, 'y_max': 35},
+        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 20, 'y_max': 30},
         'descripcion': 'Eastern coastal province'
     },
     'henan': {
@@ -127,7 +127,7 @@ poblacion_china = {
     'hebei': {
         'nombre': 'Hebei',
         'poblacion': 75919,
-        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 40, 'y_max': 50},
+        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 10, 'y_max': 20},
         'descripcion': 'Surrounds Beijing'
     },
     'hunan': {
