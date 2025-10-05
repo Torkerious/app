@@ -75,6 +75,13 @@ st.markdown("""
         margin: 0.5rem 0;
         border-left: 4px solid #f1c40f;
     }
+    .results-table {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,73 +96,73 @@ poblacion_china = {
     'guangdong': {
         'nombre': 'Guangdong',
         'poblacion': 126012,  # en miles (126 millones)
-        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 25, 'y_max': 35},
+        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 15, 'y_max': 25},
         'descripcion': 'Provincia más poblada de China'
     },
     'shandong': {
         'nombre': 'Shandong',
         'poblacion': 101527,
-        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 40, 'y_max': 50},
+        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 30, 'y_max': 40},
         'descripcion': 'Provincia costera del este'
     },
     'henan': {
         'nombre': 'Henan',
         'poblacion': 99365,
-        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 45, 'y_max': 55},
+        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 35, 'y_max': 45},
         'descripcion': 'Corazón de China central'
     },
     'jiangsu': {
         'nombre': 'Jiangsu',
         'poblacion': 84748,
-        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 35, 'y_max': 45},
+        'coordenadas': {'x_min': 95, 'x_max': 110, 'y_min': 25, 'y_max': 35},
         'descripcion': 'Zona económica desarrollada'
     },
     'sichuan': {
         'nombre': 'Sichuan',
         'poblacion': 83675,
-        'coordenadas': {'x_min': 50, 'x_max': 70, 'y_min': 40, 'y_max': 55},
+        'coordenadas': {'x_min': 55, 'x_max': 75, 'y_min': 30, 'y_max': 45},
         'descripcion': 'Provincia del suroeste'
     },
     'hebei': {
         'nombre': 'Hebei',
         'poblacion': 75919,
-        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 50, 'y_max': 60},
+        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 40, 'y_max': 50},
         'descripcion': 'Rodeando Beijing'
     },
     'hunan': {
         'nombre': 'Hunan',
         'poblacion': 69185,
-        'coordenadas': {'x_min': 65, 'x_max': 80, 'y_min': 30, 'y_max': 40},
+        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 20, 'y_max': 30},
         'descripcion': 'Provincia central'
     },
     'anhui': {
         'nombre': 'Anhui',
         'poblacion': 63236,
-        'coordenadas': {'x_min': 85, 'x_max': 100, 'y_min': 30, 'y_max': 40},
+        'coordenadas': {'x_min': 90, 'x_max': 105, 'y_min': 20, 'y_max': 30},
         'descripcion': 'Este de China'
     },
     'hubei': {
         'nombre': 'Hubei',
         'poblacion': 59172,
-        'coordenadas': {'x_min': 70, 'x_max': 85, 'y_min': 35, 'y_max': 45},
+        'coordenadas': {'x_min': 75, 'x_max': 90, 'y_min': 25, 'y_max': 35},
         'descripcion': 'China central'
     },
     'zhejiang': {
         'nombre': 'Zhejiang',
         'poblacion': 58500,
-        'coordenadas': {'x_min': 95, 'x_max': 110, 'y_min': 25, 'y_max': 35},
+        'coordenadas': {'x_min': 100, 'x_max': 115, 'y_min': 15, 'y_max': 25},
         'descripcion': 'Costa este desarrollada'
     }
 }
 
 # Puntos de interés críticos en China
 puntos_criticos_china = {
-    'beijing': {'x': 88, 'y': 55, 'nombre': 'Beijing', 'tipo': 'capital'},
-    'shanghai': {'x': 100, 'y': 35, 'nombre': 'Shanghai', 'tipo': 'economico'},
-    'guangzhou': {'x': 82, 'y': 28, 'nombre': 'Guangzhou', 'tipo': 'economico'},
-    'shenzhen': {'x': 85, 'y': 25, 'nombre': 'Shenzhen', 'tipo': 'tecnologico'},
-    'wuhan': {'x': 78, 'y': 40, 'nombre': 'Wuhan', 'tipo': 'industrial'},
-    'xian': {'x': 65, 'y': 48, 'nombre': 'Xi\'an', 'tipo': 'cultural'}
+    'beijing': {'x': 92, 'y': 45, 'nombre': 'Beijing', 'tipo': 'capital'},
+    'shanghai': {'x': 102, 'y': 28, 'nombre': 'Shanghai', 'tipo': 'economico'},
+    'guangzhou': {'x': 87, 'y': 20, 'nombre': 'Guangzhou', 'tipo': 'economico'},
+    'shenzhen': {'x': 90, 'y': 18, 'nombre': 'Shenzhen', 'tipo': 'tecnologico'},
+    'wuhan': {'x': 82, 'y': 30, 'nombre': 'Wuhan', 'tipo': 'industrial'},
+    'xian': {'x': 70, 'y': 38, 'nombre': 'Xi\'an', 'tipo': 'cultural'}
 }
 
 # Función para cargar imagen de China
@@ -175,17 +182,16 @@ def cargar_imagen_china():
 
 def generar_mapa_china_por_defecto():
     """Genera un mapa simplificado de China si no hay imagen"""
-    fig, ax = plt.subplots(figsize=(12, 10))
+    fig, ax = plt.subplots(figsize=(10, 8))  # Relación 5:4
     
     # Fondo del mapa
     ax.set_facecolor('#1a1a2e')
     
-    # Contorno aproximado de China
+    # Contorno aproximado de China con relación 5:4
     china_outline = np.array([
-        [40, 20], [50, 25], [60, 30], [70, 35], [80, 40], [90, 45],
-        [100, 40], [110, 35], [115, 30], [120, 25], [115, 20],
-        [105, 15], [95, 10], [85, 15], [75, 20], [65, 25], [55, 20],
-        [45, 15], [40, 20]
+        [50, 10], [60, 15], [70, 20], [80, 25], [90, 30], [100, 35],
+        [110, 30], [115, 25], [120, 20], [115, 15], [105, 10],
+        [95, 5], [85, 10], [75, 15], [65, 20], [55, 15], [50, 10]
     ])
     
     polygon = Polygon(china_outline, closed=True, facecolor='#2c3e50', 
@@ -193,11 +199,12 @@ def generar_mapa_china_por_defecto():
     ax.add_patch(polygon)
     
     # Ríos principales (simplificados)
-    ax.plot([60, 80, 95], [45, 40, 35], 'b-', linewidth=3, alpha=0.6, label='Río Yangtsé')
-    ax.plot([50, 70, 85], [50, 45, 40], 'b-', linewidth=2, alpha=0.6, label='Río Amarillo')
+    ax.plot([65, 85, 100], [35, 30, 25], 'b-', linewidth=3, alpha=0.6, label='Río Yangtsé')
+    ax.plot([55, 75, 90], [40, 35, 30], 'b-', linewidth=2, alpha=0.6, label='Río Amarillo')
     
-    ax.set_xlim(30, 125)
-    ax.set_ylim(5, 65)
+    # Configurar límites para relación 5:4 (50-120 en X, 5-45 en Y)
+    ax.set_xlim(50, 120)
+    ax.set_ylim(5, 45)
     ax.set_aspect('equal')
     ax.axis('off')
     ax.set_title('Mapa de China - Simulador de Impacto', fontsize=16, color='white', pad=20)
@@ -242,10 +249,10 @@ def crear_asteroide():
 # Función para crear mapa de China
 def crear_mapa_china(imagen_china, mostrar_asteroide=False, pos_asteroide=None, tamaño_asteroide=1):
     """Crea un mapa de China con provincias y puntos críticos"""
-    fig, ax = plt.subplots(figsize=(14, 10))
+    fig, ax = plt.subplots(figsize=(10, 8))  # Relación 5:4
     
     # Mostrar imagen de fondo de China
-    ax.imshow(imagen_china, extent=[30, 125, 5, 65], alpha=0.8)
+    ax.imshow(imagen_china, extent=[50, 120, 5, 45], alpha=0.8)
     
     # Dibujar provincias (semi-transparentes)
     for provincia_id, provincia in poblacion_china.items():
@@ -312,12 +319,12 @@ def crear_mapa_china(imagen_china, mostrar_asteroide=False, pos_asteroide=None, 
         
         # Trayectoria del asteroide
         ax.plot([pos_asteroide[0], pos_asteroide[0]], 
-               [65, pos_asteroide[1]], 'r--', alpha=0.7, linewidth=2,
+               [45, pos_asteroide[1]], 'r--', alpha=0.7, linewidth=2,
                label='Trayectoria Asteroide')
     
     # Configuración del mapa
-    ax.set_xlim(30, 125)
-    ax.set_ylim(5, 65)
+    ax.set_xlim(50, 120)
+    ax.set_ylim(5, 45)
     ax.set_aspect('equal')
     ax.set_title('Mapa de China - Simulador de Impacto\n(Provincias por densidad poblacional)', 
                 fontsize=16, fontweight='bold', pad=20)
@@ -442,8 +449,8 @@ with st.sidebar:
     velocidad = st.slider("Velocidad (km/s)", 10, 100, 50)
     
     st.subheader("Punto de Impacto en China")
-    punto_impacto_x = st.slider("Longitud Este", 30, 125, 80)
-    punto_impacto_y = st.slider("Latitud Norte", 5, 65, 35)
+    punto_impacto_x = st.slider("Longitud Este", 50, 120, 85)
+    punto_impacto_y = st.slider("Latitud Norte", 5, 45, 25)
     
     # Mostrar provincia de impacto
     provincia_impacto = "Mar/Área despoblada"
@@ -568,24 +575,44 @@ with col2:
         
         st.pyplot(fig_impacto)
         
-        # Población afectada por provincia
+        # Población afectada por provincia - TABLA MEJORADA
         st.subheader("Población Afectada por Provincia")
         
-        # Crear tabla de resultados
+        # Crear tabla de resultados con mejor formato
         datos_tabla = []
         for provincia_id, datos in resultado['provincias_afectadas'].items():
             provincia = poblacion_china[provincia_id]
             datos_tabla.append({
                 'Provincia': provincia['nombre'],
-                'Población Total': f"{provincia['poblacion'] * 1000:,}",
-                'Población Afectada': f"{datos['poblacion_afectada']:,}",
-                '% Afectado': f"{datos['porcentaje_afectacion']:.1f}%",
-                'Distancia (km)': f"{datos['distancia_impacto'] * 100:.0f}"
+                'Población Total': provincia['poblacion'] * 1000,
+                'Población Afectada': datos['poblacion_afectada'],
+                '% Afectado': datos['porcentaje_afectacion'],
+                'Distancia (km)': datos['distancia_impacto'] * 100
             })
         
-        # Mostrar tabla
+        # Crear DataFrame
         df_resultados = pd.DataFrame(datos_tabla)
-        st.dataframe(df_resultados, use_container_width=True)
+        
+        # Formatear números para mejor visualización
+        df_display = df_resultados.copy()
+        df_display['Población Total'] = df_display['Población Total'].apply(lambda x: f"{x:,}")
+        df_display['Población Afectada'] = df_display['Población Afectada'].apply(lambda x: f"{x:,}")
+        df_display['% Afectado'] = df_display['% Afectado'].apply(lambda x: f"{x:.1f}%")
+        df_display['Distancia (km)'] = df_display['Distancia (km)'].apply(lambda x: f"{x:.0f}")
+        
+        # Mostrar tabla con mejor estilo
+        st.markdown('<div class="results-table">', unsafe_allow_html=True)
+        st.dataframe(df_display, use_container_width=True, height=400)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Resumen total
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Población Total China", f"{sum([p['poblacion'] * 1000 for p in poblacion_china.values()]):,}")
+        with col2:
+            st.metric("Población Afectada Total", f"{resultado['poblacion_total_afectada']:,}")
+        with col3:
+            st.metric("Porcentaje Total Afectado", f"{(resultado['poblacion_total_afectada'] / sum([p['poblacion'] * 1000 for p in poblacion_china.values()]) * 100):.1f}%")
         
         # Evaluación general
         st.subheader("Evaluación del Impacto en China")
@@ -647,4 +674,5 @@ st.info("""
 - El asteroide es visible en el mapa durante la simulación
 - Coordenadas representan posición aproximada en el mapa de China
 - Población total considerada: ~847 millones (10 provincias principales)
+- Relación de aspecto del mapa: 5:4
 """)
