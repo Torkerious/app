@@ -7,7 +7,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import time
 from PIL import Image
 import io
-import base64
+import os
 
 # Configuración de la página
 st.set_page_config(
@@ -75,45 +75,41 @@ st.markdown("""
         margin: 0.5rem 0;
         border-left: 4px solid #f1c40f;
     }
-    .upload-section {
-        background: linear-gradient(45deg, #00b09b, #96c93d);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # Título principal
-st.markdown('<h1 class="main-header">🌍 Simulador de Impacto - Mapa con Imagen</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">Simulador de Impacto - Mapa con Imagen</h1>', unsafe_allow_html=True)
 
-# Sección de carga de imagen
-st.markdown("""
-<div class="upload-section">
-<h2>🗺️ Cargar Mapa de Ciudad</h2>
-<p>Sube una imagen de tu ciudad o usa el mapa por defecto. El sistema detectará automáticamente las zonas de densidad poblacional.</p>
-</div>
-""", unsafe_allow_html=True)
+# Nombres de archivos que deben estar en la carpeta del proyecto
+MAPA_FONDO_FILE = "mapa_ciudad_fondo.png"
+MAPA_DENSIDAD_FILE = "mapa_densidad.png"
 
-# Cargar imagen de fondo
-col1, col2 = st.columns([2, 1])
-with col1:
-    uploaded_file = st.file_uploader("Subir imagen de mapa (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
-    
-with col2:
-    use_default = st.checkbox("Usar mapa por defecto", value=True)
-
-# Función para cargar imagen
-def cargar_imagen_fondo(uploaded_file, use_default):
-    if uploaded_file is not None and not use_default:
-        image = Image.open(uploaded_file)
-        st.success(f"✅ Imagen cargada: {uploaded_file.name} ({image.size[0]}x{image.size[1]})")
-        return image
-    else:
-        # Crear un mapa por defecto simulado
-        st.info("🗺️ Usando mapa de ciudad por defecto")
-        return generar_mapa_por_defecto()
+# Función para cargar imágenes
+def cargar_imagenes():
+    """Carga las imágenes desde los archivos locales"""
+    try:
+        # Cargar imagen de fondo principal
+        if os.path.exists(MAPA_FONDO_FILE):
+            imagen_fondo = Image.open(MAPA_FONDO_FILE)
+            st.success(f"Imagen de fondo cargada: {MAPA_FONDO_FILE}")
+        else:
+            st.warning(f"Archivo {MAPA_FONDO_FILE} no encontrado. Usando mapa por defecto.")
+            imagen_fondo = generar_mapa_por_defecto()
+        
+        # Cargar imagen de densidad (opcional, para referencia)
+        if os.path.exists(MAPA_DENSIDAD_FILE):
+            imagen_densidad = Image.open(MAPA_DENSIDAD_FILE)
+            st.success(f"Imagen de densidad cargada: {MAPA_DENSIDAD_FILE}")
+        else:
+            st.info(f"Archivo {MAPA_DENSIDAD_FILE} no encontrado. Usando datos simulados.")
+            imagen_densidad = None
+            
+        return imagen_fondo, imagen_densidad
+        
+    except Exception as e:
+        st.error(f"Error cargando imagenes: {e}")
+        return generar_mapa_por_defecto(), None
 
 def generar_mapa_por_defecto():
     """Genera un mapa de ciudad por defecto si no hay imagen"""
@@ -159,8 +155,8 @@ def generar_mapa_por_defecto():
     plt.close(fig)
     return Image.open(buf)
 
-# Cargar imagen
-imagen_fondo = cargar_imagen_fondo(uploaded_file, use_default)
+# Cargar imagenes
+imagen_fondo, imagen_densidad = cargar_imagenes()
 
 # Datos de densidad poblacional simulados (basados en coordenadas del mapa)
 datos_densidad = {
@@ -176,7 +172,7 @@ datos_densidad = {
         'poblacion': 280000,
         'densidad': 'Alta',
         'coordenadas': {'x_min': 30, 'x_max': 50, 'y_min': 65, 'y_max': 85},
-        'descripcion': 'Área residencial consolidada'
+        'descripcion': 'Area residencial consolidada'
     },
     'sur_industrial': {
         'nombre': 'Sur Industrial',
@@ -204,27 +200,27 @@ datos_densidad = {
         'poblacion': 80000,
         'densidad': 'Media',
         'coordenadas': {'x_min': 65, 'x_max': 85, 'y_min': 75, 'y_max': 90},
-        'descripcion': 'Campus y áreas académicas'
+        'descripcion': 'Campus y areas academicas'
     },
     'zona_verde_central': {
         'nombre': 'Parque Central',
         'poblacion': 5000,
         'densidad': 'Muy Baja',
         'coordenadas': {'x_min': 45, 'x_max': 55, 'y_min': 20, 'y_max': 35},
-        'descripcion': 'Área verde metropolitana'
+        'descripcion': 'Area verde metropolitana'
     }
 }
 
-# Puntos de interés críticos
+# Puntos de interes criticos
 puntos_criticos = {
     'hospital_central': {'x': 52, 'y': 52, 'nombre': 'Hospital Central', 'tipo': 'hospital'},
     'ayuntamiento': {'x': 48, 'y': 48, 'nombre': 'Ayuntamiento', 'tipo': 'gobierno'},
-    'estacion_central': {'x': 55, 'y': 45, 'nombre': 'Estación Central', 'tipo': 'transporte'},
+    'estacion_central': {'x': 55, 'y': 45, 'nombre': 'Estacion Central', 'tipo': 'transporte'},
     'centro_comercial': {'x': 62, 'y': 58, 'nombre': 'Mega Centro', 'tipo': 'comercio'},
     'universidad': {'x': 72, 'y': 80, 'nombre': 'Universidad', 'tipo': 'educacion'}
 }
 
-# Función para crear el asteroide
+# Funcion para crear el asteroide
 def crear_asteroide():
     """Crea una imagen de asteroide simple"""
     fig, ax = plt.subplots(figsize=(2, 2))
@@ -236,7 +232,7 @@ def crear_asteroide():
                       facecolor='#8B7355', edgecolor='#654321', linewidth=2)
     ax.add_patch(asteroid)
     
-    # Detalles de cráteres
+    # Detalles de crateres
     for i in range(5):
         x, y = np.random.uniform(0.2, 0.8, 2)
         size = np.random.uniform(0.05, 0.15)
@@ -253,7 +249,7 @@ def crear_asteroide():
     plt.close(fig)
     return buf
 
-# Función para crear mapa con imagen de fondo
+# Funcion para crear mapa con imagen de fondo
 def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=None, tamaño_asteroide=1):
     """Crea un mapa con imagen de fondo y datos de densidad"""
     fig, ax = plt.subplots(figsize=(14, 10))
@@ -293,7 +289,7 @@ def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=N
                ha='center', va='center', fontsize=8, weight='bold',
                bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.9))
     
-    # Dibujar puntos críticos
+    # Dibujar puntos criticos
     for punto_id, punto in puntos_criticos.items():
         if punto['tipo'] == 'hospital':
             marker, color = 'H', 'red'
@@ -312,7 +308,7 @@ def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=N
                ha='center', va='bottom', fontsize=7, weight='bold', 
                bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8))
     
-    # Mostrar asteroide si está activado
+    # Mostrar asteroide si esta activado
     if mostrar_asteroide and pos_asteroide:
         asteroid_img = crear_asteroide()
         img = plt.imread(asteroid_img)
@@ -327,7 +323,7 @@ def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=N
                [100, pos_asteroide[1]], 'r--', alpha=0.7, linewidth=2,
                label='Trayectoria Asteroide')
     
-    # Configuración del mapa
+    # Configuracion del mapa
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.set_aspect('equal')
@@ -360,7 +356,7 @@ def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=N
     
     return fig
 
-# Función para formatear energía
+# Funcion para formatear energia
 def formatear_energia(energia_megatones):
     if energia_megatones >= 1000:
         return f"{energia_megatones/1000:.1f}", "GT"
@@ -373,14 +369,14 @@ def formatear_energia(energia_megatones):
     else:
         return f"{energia_megatones:.2f}", "MT"
 
-# Función de simulación
+# Funcion de simulacion
 def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y, defensas):
-    # Cálculos del impacto
+    # Calculos del impacto
     masa = diametro ** 3 * 800
     energia_joules = 0.5 * masa * (velocidad * 1000) ** 2
     energia_megatones = energia_joules / (4.184e15)
     
-    # Radio de destrucción
+    # Radio de destruccion
     radio_destruccion_total = diametro * 25
     radio_destruccion_parcial = radio_destruccion_total * 2
     
@@ -395,13 +391,13 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
     if defensas["escudo"]:
         reduccion += 0.1
     
-    # Aplicar reducción
+    # Aplicar reduccion
     radio_destruccion_total *= (1 - reduccion)
     radio_destruccion_parcial *= (1 - reduccion)
     energia_final = energia_megatones * (1 - reduccion)
     energia_mitigada = energia_megatones - energia_final
     
-    # Calcular población afectada
+    # Calcular poblacion afectada
     zonas_afectadas = {}
     poblacion_total_afectada = 0
     
@@ -412,9 +408,9 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
         
         distancia = np.sqrt((centro_x - punto_impacto_x)**2 + (centro_y - punto_impacto_y)**2)
         
-        # Calcular afectación basada en distancia
+        # Calcular afectacion basada en distancia
         if distancia <= radio_destruccion_total / 10:
-            factor_afectacion = 0.9  # 90% en zona de destrucción total
+            factor_afectacion = 0.9  # 90% en zona de destruccion total
         elif distancia <= radio_destruccion_parcial / 10:
             factor_afectacion = 0.6  # 60% en zona parcial
         else:
@@ -442,13 +438,13 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
 
 # Sidebar para controles
 with st.sidebar:
-    st.header("🎮 Controles de Simulación")
+    st.header("Controles de Simulacion")
     
-    st.subheader("🌠 Asteroide")
-    diametro = st.slider("Diámetro (metros)", 100, 5000, 1000)
+    st.subheader("Asteroide")
+    diametro = st.slider("Diametro (metros)", 100, 5000, 1000)
     velocidad = st.slider("Velocidad (km/s)", 10, 100, 50)
     
-    st.subheader("🎯 Punto de Impacto")
+    st.subheader("Punto de Impacto")
     punto_impacto_x = st.slider("Coordenada X", 0, 100, 50)
     punto_impacto_y = st.slider("Coordenada Y", 0, 100, 50)
     
@@ -464,46 +460,46 @@ with st.sidebar:
             min_dist = distancia
             zona_impacto = zona['nombre']
     
-    st.info(f"**Zona más cercana:** {zona_impacto}")
+    st.info(f"Zona mas cercana: {zona_impacto}")
     
-    st.subheader("🛡️ Sistemas de Defensa")
+    st.subheader("Sistemas de Defensa")
     col1, col2 = st.columns(2)
     with col1:
-        defensa_laser = st.checkbox("Láser")
+        defensa_laser = st.checkbox("Laser")
         desviacion_nuclear = st.checkbox("Nuclear")
     with col2:
         tractor_gravitatorio = st.checkbox("Tractor")
         escudo_atmosferico = st.checkbox("Escudo")
 
-# Mostrar información de zonas
-st.subheader("🏘️ Zonas de Densidad Poblacional")
+# Mostrar informacion de zonas
+st.subheader("Zonas de Densidad Poblacional")
 
 cols = st.columns(3)
 for i, (zona_id, zona) in enumerate(datos_densidad.items()):
     with cols[i % 3]:
         st.markdown(f"""
         <div class="district-card">
-        <h4>📍 {zona['nombre']}</h4>
-        <p>👥 {zona['poblacion']:,} habitantes</p>
-        <p>📊 Densidad: {zona['densidad']}</p>
+        <h4>{zona['nombre']}</h4>
+        <p>{zona['poblacion']:,} habitantes</p>
+        <p>Densidad: {zona['densidad']}</p>
         <p>{zona['descripcion']}</p>
         </div>
         """, unsafe_allow_html=True)
 
 # Mostrar mapa base con imagen de fondo
-st.subheader("🗺️ Mapa con Imagen de Fondo y Densidad Poblacional")
+st.subheader("Mapa con Imagen de Fondo y Densidad Poblacional")
 fig_base = crear_mapa_con_imagen(imagen_fondo)
 st.pyplot(fig_base)
 
-# Botón de simulación
+# Boton de simulacion
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    if st.button("🌠 SIMULAR IMPACTO DE ASTEROIDE", use_container_width=True, type="primary"):
+    if st.button("SIMULAR IMPACTO DE ASTEROIDE", use_container_width=True, type="primary"):
         
         with st.spinner("Calculando trayectoria y impacto..."):
             time.sleep(3)
         
-        # Ejecutar simulación
+        # Ejecutar simulacion
         defensas = {
             "laser": defensa_laser,
             "nuclear": desviacion_nuclear,
@@ -515,9 +511,9 @@ with col2:
         
         # Mostrar resultados
         st.markdown("---")
-        st.subheader("💥 Resultados del Impacto")
+        st.subheader("Resultados del Impacto")
         
-        # SECCIÓN DE ENERGÍA
+        # SECCION DE ENERGIA
         st.markdown('<div class="energy-section">', unsafe_allow_html=True)
         
         valor_original, unidad_original = formatear_energia(resultado['energia_megatones'])
@@ -527,24 +523,24 @@ with col2:
         col_energia1, col_energia2, col_energia3 = st.columns(3)
         
         with col_energia1:
-            st.markdown(f'<div class="energy-metric">💥 ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">ENERGIA ORIGINAL</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ff6b6b;">{valor_original} {unidad_original}</div>', unsafe_allow_html=True)
             
         with col_energia2:
-            st.markdown(f'<div class="energy-metric">🛡️ ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">ENERGIA MITIGADA</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_mitigada} {unidad_mitigada}</div>', unsafe_allow_html=True)
-            st.metric("Reducción", f"{resultado['reduccion']:.0f}%")
+            st.metric("Reduccion", f"{resultado['reduccion']:.0f}%")
             
         with col_energia3:
-            st.markdown(f'<div class="energy-metric">⚡ ENERGÍA DE IMPACTO</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">ENERGIA DE IMPACTO</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ffa502;">{valor_impacto} {unidad_impacto}</div>', unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
         
         # Mapa con impacto y asteroide
-        st.subheader("🌍 Mapa con Simulación de Impacto")
+        st.subheader("Mapa con Simulacion de Impacto")
         
-        # Calcular tamaño del asteroide para visualización
+        # Calcular tamaño del asteroide para visualizacion
         tamaño_asteroide_visual = min(3.0, diametro / 500)
         
         fig_impacto = crear_mapa_con_imagen(
@@ -557,39 +553,39 @@ with col2:
         # Dibujar zonas de impacto en el mapa
         ax_impacto = fig_impacto.axes[0]
         
-        # Zona de destrucción total
+        # Zona de destruccion total
         impacto_total = Circle(resultado['punto_impacto'], 
                               resultado['radio_destruccion_total'] / 10,
                               fill=False, color='red', linewidth=3, linestyle='--',
-                              label='Zona Destrucción Total')
+                              label='Zona Destruccion Total')
         ax_impacto.add_patch(impacto_total)
         
-        # Zona de daños parciales
+        # Zona de danos parciales
         impacto_parcial = Circle(resultado['punto_impacto'],
                                 resultado['radio_destruccion_parcial'] / 10,
                                 fill=False, color='orange', linewidth=2, linestyle=':',
-                                label='Zona Daños Parciales')
+                                label='Zona Danos Parciales')
         ax_impacto.add_patch(impacto_parcial)
         
         ax_impacto.legend(loc='upper right', bbox_to_anchor=(1.15, 0.8))
         
         st.pyplot(fig_impacto)
         
-        # Población afectada por zona
-        st.subheader("👥 Población Afectada por Zona")
+        # Poblacion afectada por zona
+        st.subheader("Poblacion Afectada por Zona")
         
         cols_afectados = st.columns(3)
         for i, (zona_id, datos) in enumerate(resultado['zonas_afectadas'].items()):
             zona = datos_densidad[zona_id]
             with cols_afectados[i % 3]:
                 st.metric(
-                    f"📍 {zona['nombre']}",
+                    f"{zona['nombre']}",
                     f"{datos['poblacion_afectada']:,} hab.",
                     f"{datos['porcentaje_afectacion']:.1f}% afectado"
                 )
         
-        # Evaluación general
-        st.subheader("📈 Evaluación del Impacto")
+        # Evaluacion general
+        st.subheader("Evaluacion del Impacto")
         
         poblacion_total = sum([zona['poblacion'] for zona in datos_densidad.values()])
         porcentaje_poblacion_afectada = (resultado['poblacion_total_afectada'] / poblacion_total) * 100
@@ -597,54 +593,54 @@ with col2:
         if porcentaje_poblacion_afectada > 40:
             st.markdown("""
             <div class="impact-warning">
-            <h3>💥 CATASTROFE CIVIL COMPLETA</h3>
-            <p><strong>Impacto:</strong> Apocalíptico - Más del 40% de la población afectada</p>
-            <p><strong>Población afectada:</strong> {:,} personas</p>
-            <p><strong>Consecuencias:</strong> Colapso total de infraestructura y servicios</p>
-            <p><strong>Acción:</strong> Evacuación total y respuesta internacional</p>
+            <h3>CATASTROFE CIVIL COMPLETA</h3>
+            <p>Impacto: Apocaliptico - Mas del 40% de la poblacion afectada</p>
+            <p>Poblacion afectada: {:,} personas</p>
+            <p>Consecuencias: Colapso total de infraestructura y servicios</p>
+            <p>Accion: Evacuacion total y respuesta internacional</p>
             </div>
             """.format(resultado['poblacion_total_afectada']), unsafe_allow_html=True)
             
         elif porcentaje_poblacion_afectada > 20:
             st.markdown("""
             <div class="impact-warning">
-            <h3>⚠️ CATASTROFE REGIONAL</h3>
-            <p><strong>Impacto:</strong> Devastador - Entre 20-40% de la población afectada</p>
-            <p><strong>Población afectada:</strong> {:,} personas</p>
-            <p><strong>Consecuencias:</strong> Daños severos en infraestructura crítica</p>
-            <p><strong>Acción:</strong> Respuesta nacional de emergencia</p>
+            <h3>CATASTROFE REGIONAL</h3>
+            <p>Impacto: Devastador - Entre 20-40% de la poblacion afectada</p>
+            <p>Poblacion afectada: {:,} personas</p>
+            <p>Consecuencias: Danos severos en infraestructura critica</p>
+            <p>Accion: Respuesta nacional de emergencia</p>
             </div>
             """.format(resultado['poblacion_total_afectada']), unsafe_allow_html=True)
             
         elif porcentaje_poblacion_afectada > 10:
             st.markdown("""
             <div class="impact-warning">
-            <h3>🔶 DESASTRE URBANO MAYOR</h3>
-            <p><strong>Impacto:</strong> Grave - Entre 10-20% de la población afectada</p>
-            <p><strong>Población afectada:</strong> {:,} personas</p>
-            <p><strong>Consecuencias:</strong> Daños significativos en áreas específicas</p>
-            <p><strong>Acción:</strong> Respuesta regional coordinada</p>
+            <h3>DESASTRE URBANO MAYOR</h3>
+            <p>Impacto: Grave - Entre 10-20% de la poblacion afectada</p>
+            <p>Poblacion afectada: {:,} personas</p>
+            <p>Consecuencias: Danos significativos en areas especificas</p>
+            <p>Accion: Respuesta regional coordinada</p>
             </div>
             """.format(resultado['poblacion_total_afectada']), unsafe_allow_html=True)
             
         else:
             st.markdown("""
             <div class="mitigation-success">
-            <h3>✅ IMPACTO CONTROLADO</h3>
-            <p><strong>Impacto:</strong> Limitado - Menos del 10% de la población afectada</p>
-            <p><strong>Población afectada:</strong> {:,} personas</p>
-            <p><strong>Efectividad defensas:</strong> {:.1f}% de reducción</p>
-            <p><strong>Acción:</strong> Respuesta local y recuperación</p>
+            <h3>IMPACTO CONTROLADO</h3>
+            <p>Impacto: Limitado - Menos del 10% de la poblacion afectada</p>
+            <p>Poblacion afectada: {:,} personas</p>
+            <p>Efectividad defensas: {:.1f}% de reduccion</p>
+            <p>Accion: Respuesta local y recuperacion</p>
             </div>
             """.format(resultado['poblacion_total_afectada'], resultado['reduccion']), unsafe_allow_html=True)
 
-# Información adicional
+# Informacion adicional
 st.markdown("---")
 st.info("""
-**ℹ️ Acerca de esta simulación:**
-- Sistema permite cargar cualquier imagen de mapa como fondo
+**Acerca de esta simulacion:**
+- Sistema carga automaticamente mapa_ciudad_fondo.png y mapa_densidad.png
 - Las zonas de densidad poblacional se superponen sobre la imagen
-- Los cálculos consideran densidad poblacional y distancia al impacto
-- El asteroide es visible en el mapa durante la simulación
+- Los calculos consideran densidad poblacional y distancia al impacto
+- El asteroide es visible en el mapa durante la simulacion
 - Coordenadas van de 0 a 100 en ambos ejes para facilitar posicionamiento
 """)
