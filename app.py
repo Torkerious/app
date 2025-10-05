@@ -12,7 +12,7 @@ import io
 # Configuración de la página
 st.set_page_config(
     page_title="Simulador de Impacto - Mapa Urbano",
-    page_icon="🗺️",
+    
     layout="wide"
 )
 
@@ -79,12 +79,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Título principal
-st.markdown('<h1 class="main-header">🌍 Simulador de Impacto - Mapa Urbano Real</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header"> Simulador de Impacto - Mapa Urbano Real</h1>', unsafe_allow_html=True)
 
 # Descripción
 st.markdown("""
 <div class="city-description">
-<h2>🏙️ Mapa de Ciudad Metropolitana</h2>
+<h2> Mapa de Ciudad Metropolitana</h2>
 <p><strong>Población total:</strong> 2,500,000 habitantes • <strong>Área:</strong> 680 km²</p>
 <p>Simulador de impacto de asteroides sobre una ciudad metropolitana realista con datos de población detallados.</p>
 </div>
@@ -391,11 +391,11 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
 with st.sidebar:
     st.header("🎮 Controles de Simulación")
     
-    st.subheader("🌠 Asteroide")
+    st.subheader(" Asteroide")
     diametro = st.slider("Diámetro (metros)", 100, 5000, 1000)
     velocidad = st.slider("Velocidad (km/s)", 10, 100, 50)
     
-    st.subheader("🎯 Punto de Impacto")
+    st.subheader(" Punto de Impacto")
     punto_impacto_x = st.slider("Coordenada X", 0, 100, 50)
     punto_impacto_y = st.slider("Coordenada Y", 0, 100, 50)
     
@@ -411,7 +411,7 @@ with st.sidebar:
     
     st.info(f"**Zona más cercana:** {zona_impacto}")
     
-    st.subheader("🛡️ Sistemas de Defensa")
+    st.subheader(" Sistemas de Defensa")
     col1, col2 = st.columns(2)
     with col1:
         defensa_laser = st.checkbox("Láser")
@@ -421,29 +421,29 @@ with st.sidebar:
         escudo_atmosferico = st.checkbox("Escudo")
 
 # Mostrar información de zonas
-st.subheader("🏘️ Zonas de la Ciudad")
+st.subheader(" Zonas de la Ciudad")
 
 cols = st.columns(3)
 for i, (zona_id, zona) in enumerate(datos_poblacion.items()):
     with cols[i % 3]:
         st.markdown(f"""
         <div class="district-card">
-        <h4>📍 {zona['nombre']}</h4>
-        <p>👥 {zona['poblacion']:,} habitantes</p>
-        <p>📊 Densidad: {zona['densidad']}</p>
+        <h4> {zona['nombre']}</h4>
+        <p> {zona['poblacion']:,} habitantes</p>
+        <p> Densidad: {zona['densidad']}</p>
         <p>{zona['descripcion']}</p>
         </div>
         """, unsafe_allow_html=True)
 
 # Mostrar mapa base
-st.subheader("🗺️ Mapa de la Ciudad")
+st.subheader(" Mapa de la Ciudad")
 fig_base = crear_mapa_ciudad()
 st.pyplot(fig_base)
 
 # Botón de simulación
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    if st.button("🌠 SIMULAR IMPACTO DE ASTEROIDE", use_container_width=True, type="primary"):
+    if st.button(" SIMULAR IMPACTO DE ASTEROIDE", use_container_width=True, type="primary"):
         
         with st.spinner("Calculando trayectoria y impacto..."):
             time.sleep(3)
@@ -460,7 +460,7 @@ with col2:
         
         # Mostrar resultados
         st.markdown("---")
-        st.subheader("💥 Resultados del Impacto")
+        st.subheader(" Resultados del Impacto")
         
         # SECCIÓN DE ENERGÍA
         st.markdown('<div class="energy-section">', unsafe_allow_html=True)
@@ -472,16 +472,16 @@ with col2:
         col_energia1, col_energia2, col_energia3 = st.columns(3)
         
         with col_energia1:
-            st.markdown(f'<div class="energy-metric">💥 ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric"> ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ff6b6b;">{valor_original} {unidad_original}</div>', unsafe_allow_html=True)
             
         with col_energia2:
-            st.markdown(f'<div class="energy-metric">🛡️ ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric"> ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_mitigada} {unidad_mitigada}</div>', unsafe_allow_html=True)
             st.metric("Reducción", f"{resultado['reduccion']:.0f}%")
             
         with col_energia3:
-            st.markdown(f'<div class="energy-metric">⚡ ENERGÍA DE IMPACTO</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric"> ENERGÍA DE IMPACTO</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ffa502;">{valor_impacto} {unidad_impacto}</div>', unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -534,14 +534,14 @@ with col2:
                 )
         
         # Evaluación general
-        st.subheader("📈 Evaluación del Impacto")
+        st.subheader(" Evaluación del Impacto")
         
         porcentaje_poblacion_afectada = (resultado['poblacion_total_afectada'] / 2500000) * 100
         
         if porcentaje_poblacion_afectada > 40:
             st.markdown("""
             <div class="impact-warning">
-            <h3>💥 CATASTROFE CIVIL COMPLETA</h3>
+            <h3> CATASTROFE CIVIL COMPLETA</h3>
             <p><strong>Impacto:</strong> Apocalíptico - Más del 40% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Consecuencias:</strong> Colapso total de infraestructura y servicios</p>
@@ -552,7 +552,7 @@ with col2:
         elif porcentaje_poblacion_afectada > 20:
             st.markdown("""
             <div class="impact-warning">
-            <h3>⚠️ CATASTROFE REGIONAL</h3>
+            <h3> CATASTROFE REGIONAL</h3>
             <p><strong>Impacto:</strong> Devastador - Entre 20-40% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Consecuencias:</strong> Daños severos en infraestructura crítica</p>
@@ -563,7 +563,7 @@ with col2:
         elif porcentaje_poblacion_afectada > 10:
             st.markdown("""
             <div class="impact-warning">
-            <h3>🔶 DESASTRE URBANO MAYOR</h3>
+            <h3> DESASTRE URBANO MAYOR</h3>
             <p><strong>Impacto:</strong> Grave - Entre 10-20% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Consecuencias:</strong> Daños significativos en áreas específicas</p>
@@ -574,7 +574,7 @@ with col2:
         else:
             st.markdown("""
             <div class="mitigation-success">
-            <h3>✅ IMPACTO CONTROLADO</h3>
+            <h3> IMPACTO CONTROLADO</h3>
             <p><strong>Impacto:</strong> Limitado - Menos del 10% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Efectividad defensas:</strong> {:.1f}% de reducción</p>
@@ -585,7 +585,7 @@ with col2:
 # Información adicional
 st.markdown("---")
 st.info("""
-**ℹ️ Acerca de esta simulación:**
+** Acerca de esta simulación:**
 - Mapa muestra distribución realista de población en zonas urbanas
 - Los cálculos consideran densidad poblacional y distancia al impacto
 - El asteroide es visible en el mapa durante la simulación
