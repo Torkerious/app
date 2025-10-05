@@ -6,7 +6,7 @@ import os
 
 # --- Configuración de Ruta de Archivo ---
 MODELOS_DIR = "modelos3d"
-MODELO_PATH = os.path.join(MODELOS_DIR, "tierra.glb")
+MODELO_PATH = os.path.join(MODELOS_DIR, "Earth.stl")
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
@@ -90,7 +90,7 @@ model_loaded = False
 
 if main_trace:
     fig.add_trace(main_trace)
-    st.sidebar.success("Modelo principal 'tierra.glb' cargado.")
+    st.sidebar.success("Modelo principal 'Earth.stl' cargado.")
     model_loaded = True
 else:
     st.sidebar.warning("Solo se mostrarán los elementos adicionales si los añades.")
