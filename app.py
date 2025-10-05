@@ -26,18 +26,38 @@ st.markdown("""
     .impact-warning {
         background: linear-gradient(45deg, #ff4444, #ff6b6b);
         color: white;
-        padding: 1rem;
+        padding: 1.5rem;
         border-radius: 15px;
         margin: 1rem 0;
         border: 2px solid #ff0000;
+        font-size: 1.1rem;
     }
     .mitigation-success {
         background: linear-gradient(45deg, #44ff44, #66ff66);
         color: black;
-        padding: 1rem;
+        padding: 1.5rem;
         border-radius: 15px;
         margin: 1rem 0;
         border: 2px solid #00ff00;
+        font-size: 1.1rem;
+    }
+    .impact-moderate {
+        background: linear-gradient(45deg, #ffa500, #ffb347);
+        color: black;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+        border: 2px solid #ff8c00;
+        font-size: 1.1rem;
+    }
+    .impact-serious {
+        background: linear-gradient(45deg, #ff8c00, #ffa54f);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+        border: 2px solid #ff4500;
+        font-size: 1.1rem;
     }
     .city-stats {
         background: linear-gradient(45deg, #4A90E2, #357ABD);
@@ -59,6 +79,21 @@ st.markdown("""
         padding: 1rem;
         border-radius: 10px;
         margin: 1rem 0;
+    }
+    .evaluation-section {
+        background: linear-gradient(45deg, #2c3e50, #34495e);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        margin: 1rem 0;
+    }
+    .recommendation-box {
+        background: linear-gradient(45deg, #8e44ad, #9b59b6);
+        color: white;
+        padding: 1.2rem;
+        border-radius: 10px;
+        margin: 0.8rem 0;
+        border-left: 5px solid #f1c40f;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -158,7 +193,7 @@ def generar_ciudad(densidad):
     }
     
     # Calcular número de edificios basado en densidad (10 a 100 edificios)
-    num_edificios = int(densidad * 1.2)  # 10-80 edificios según densidad
+    num_edificios = int(densidad * 0.8)  # 10-80 edificios según densidad
     num_edificios = max(10, min(80, num_edificios))  # Limitar entre 10 y 80
     
     # Calcular número de parques (inversamente proporcional a densidad)
@@ -330,7 +365,7 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
     
     # Población afectada basada en densidad
     factor_poblacion = densidad / 50.0  # 0.2x a 2x según densidad
-    poblacion_afectada = int((edificios_destruidos * 50 + edificios_danados * 1000000) * factor_poblacion)
+    poblacion_afectada = int((edificios_destruidos * 50 + edificios_danados * 10) * factor_poblacion)
     
     return {
         "energia_megatones": energia_megatones,
@@ -504,25 +539,115 @@ with col2:
         with col_conf2:
             st.info(f"👥 **Densidad aplicada:** {densidad_poblacion}% - {tipo_ciudad}")
         
-        # Evaluación de resultados
-        st.subheader("📈 Evaluación de Daños")
+        # EVALUACIÓN DE DAÑOS MEJORADA - SECCIÓN MÁS ANCHA
+        st.markdown("---")
+        st.markdown('<div class="evaluation-section">', unsafe_allow_html=True)
+        st.subheader("📈 Evaluación de Daños y Recomendaciones")
         
         # Umbrales ajustados por densidad
         umbral_catastrofe = 15 + (densidad_poblacion / 10)  # 17 a 25 según densidad
         umbral_grave = 8 + (densidad_poblacion / 15)        # 9 a 15 según densidad
         umbral_moderado = 4 + (densidad_poblacion / 20)     # 5 a 9 según densidad
         
+        # Evaluación principal
         if resultado['edificios_destruidos'] > umbral_catastrofe:
-            st.markdown('<div class="impact-warning">💥 CATASTROFE URBANA: Impacto devastador con destrucción masiva</div>', unsafe_allow_html=True)
-            st.error(f"🚨 Se estiman {resultado['poblacion_afectada']} personas afectadas. Evacuación inmediata requerida.")
+            st.markdown("""
+            <div class="impact-warning">
+            <h3>💥 CATASTROFE URBANA: IMPACTO DEVASTADOR</h3>
+            <p><strong>Nivel de Emergencia:</strong> MÁXIMO - Respuesta de emergencia total requerida</p>
+            <p><strong>Impacto:</strong> Destrucción masiva de infraestructura crítica</p>
+            <p><strong>Población afectada:</strong> {} personas requieren evacuación inmediata</p>
+            <p><strong>Radio de destrucción:</strong> {:.0f} metros - Zona de exclusión permanente</p>
+            </div>
+            """.format(resultado['poblacion_afectada'], resultado['radio_destruccion_total']), unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div class="recommendation-box">
+            <h4>🚨 ACCIONES INMEDIATAS RECOMENDADAS:</h4>
+            <ul>
+            <li>Activación de protocolos de emergencia nacional</li>
+            <li>Evacuación total del área metropolitana</li>
+            <li>Despliegue de equipos de rescate internacionales</li>
+            <li>Establecimiento de campamentos de refugiados</li>
+            <li>Coordinación con organizaciones de ayuda humanitaria</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
         elif resultado['edificios_destruidos'] > umbral_grave:
-            st.warning("⚠️ IMPACTO GRAVE: Daños extensos en el área urbana")
-            st.info(f"🏥 {resultado['poblacion_afectada']} personas requieren asistencia")
+            st.markdown("""
+            <div class="impact-serious">
+            <h3>⚠️ IMPACTO GRAVE: DAÑOS EXTENSOS</h3>
+            <p><strong>Nivel de Emergencia:</strong> ALTO - Respuesta regional requerida</p>
+            <p><strong>Impacto:</strong> Daños significativos en infraestructura esencial</p>
+            <p><strong>Población afectada:</strong> {} personas requieren asistencia médica y refugio</p>
+            <p><strong>Radio de destrucción:</strong> {:.0f} metros - Zona de acceso restringido</p>
+            </div>
+            """.format(resultado['poblacion_afectada'], resultado['radio_destruccion_total']), unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div class="recommendation-box">
+            <h4>🏥 ACCIONES DE RESPUESTA RECOMENDADAS:</h4>
+            <ul>
+            <li>Activación de hospitales de campaña</li>
+            <li>Coordinación de servicios de emergencia</li>
+            <li>Evaluación estructural de edificios dañados</li>
+            <li>Restablecimiento de servicios básicos (agua, electricidad)</li>
+            <li>Provisión de refugios temporales</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
         elif resultado['edificios_destruidos'] > umbral_moderado:
-            st.info("🔶 IMPACTO MODERADO: Daños localizados pero manejables")
+            st.markdown("""
+            <div class="impact-moderate">
+            <h3>🔶 IMPACTO MODERADO: DAÑOS LOCALIZADOS</h3>
+            <p><strong>Nivel de Emergencia:</strong> MEDIO - Respuesta local coordinada</p>
+            <p><strong>Impacto:</strong> Daños en área específica, servicios esenciales operativos</p>
+            <p><strong>Población afectada:</strong> {} personas requieren asistencia temporal</p>
+            <p><strong>Radio de destrucción:</strong> {:.0f} metros - Zona de seguridad establecida</p>
+            </div>
+            """.format(resultado['poblacion_afectada'], resultado['radio_destruccion_total']), unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div class="recommendation-box">
+            <h4>🛠️ ACCIONES DE MITIGACIÓN RECOMENDADAS:</h4>
+            <ul>
+            <li>Evaluación de daños estructurales</li>
+            <li>Coordinación con servicios municipales</li>
+            <li>Asistencia a familias afectadas</li>
+            <li>Limpieza y remoción de escombros</li>
+            <li>Monitoreo de réplicas o efectos secundarios</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
         else:
-            st.markdown('<div class="mitigation-success">✅ IMPACTO CONTROLADO: Las estrategias de mitigación han funcionado efectivamente</div>', unsafe_allow_html=True)
-            st.success(f"🎉 Solo daños menores reportados. {resultado['reduccion']:.1f}% de reducción gracias a las defensas.")
+            st.markdown("""
+            <div class="mitigation-success">
+            <h3>✅ IMPACTO CONTROLADO: SITUACIÓN MANEJABLE</h3>
+            <p><strong>Nivel de Emergencia:</strong> BAJO - Respuesta local normal</p>
+            <p><strong>Impacto:</strong> Daños menores, infraestructura principal intacta</p>
+            <p><strong>Población afectada:</strong> {} personas con afectación mínima</p>
+            <p><strong>Efectividad de defensas:</strong> {:.1f}% de reducción del daño</p>
+            <p><strong>Radio de destrucción:</strong> {:.0f} metros - Área contenida exitosamente</p>
+            </div>
+            """.format(resultado['poblacion_afectada'], resultado['reduccion'], resultado['radio_destruccion_total']), unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div class="recommendation-box">
+            <h4>🎉 ACCIONES DE RECUPERACIÓN RECOMENDADAS:</h4>
+            <ul>
+            <li>Evaluación final de daños menores</li>
+            <li>Reparaciones de infraestructura local</li>
+            <li>Retorno gradual a la normalidad</li>
+            <li>Revisión y mejora de protocolos de defensa</li>
+            <li>Documentación de lecciones aprendidas</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Información educativa
 st.markdown("---")
