@@ -5,14 +5,14 @@ import pandas as pd
 from matplotlib.patches import Circle, Rectangle, Polygon, Ellipse
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import time
-import requests
 from PIL import Image
 import io
+import base64
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Simulador de Impacto - Mapa Urbano",
-    
+    page_title="Simulador de Impacto - Mapa con Imagen",
+    page_icon="🗺️",
     layout="wide"
 )
 
@@ -75,95 +75,153 @@ st.markdown("""
         margin: 0.5rem 0;
         border-left: 4px solid #f1c40f;
     }
+    .upload-section {
+        background: linear-gradient(45deg, #00b09b, #96c93d);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Título principal
-st.markdown('<h1 class="main-header"> Simulador de Impacto - Mapa Urbano Real</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">🌍 Simulador de Impacto - Mapa con Imagen</h1>', unsafe_allow_html=True)
 
-# Descripción
+# Sección de carga de imagen
 st.markdown("""
-<div class="city-description">
-<h2> Mapa de Ciudad Metropolitana</h2>
-<p><strong>Población total:</strong> 2,500,000 habitantes • <strong>Área:</strong> 680 km²</p>
-<p>Simulador de impacto de asteroides sobre una ciudad metropolitana realista con datos de población detallados.</p>
+<div class="upload-section">
+<h2>🗺️ Cargar Mapa de Ciudad</h2>
+<p>Sube una imagen de tu ciudad o usa el mapa por defecto. El sistema detectará automáticamente las zonas de densidad poblacional.</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Datos de población por zonas (capa interna)
-datos_poblacion = {
-    'centro_historico': {
-        'nombre': 'Centro Histórico',
-        'poblacion': 180000,
+# Cargar imagen de fondo
+col1, col2 = st.columns([2, 1])
+with col1:
+    uploaded_file = st.file_uploader("Subir imagen de mapa (JPG/PNG)", type=['jpg', 'jpeg', 'png'])
+    
+with col2:
+    use_default = st.checkbox("Usar mapa por defecto", value=True)
+
+# Función para cargar imagen
+def cargar_imagen_fondo(uploaded_file, use_default):
+    if uploaded_file is not None and not use_default:
+        image = Image.open(uploaded_file)
+        st.success(f"✅ Imagen cargada: {uploaded_file.name} ({image.size[0]}x{image.size[1]})")
+        return image
+    else:
+        # Crear un mapa por defecto simulado
+        st.info("🗺️ Usando mapa de ciudad por defecto")
+        return generar_mapa_por_defecto()
+
+def generar_mapa_por_defecto():
+    """Genera un mapa de ciudad por defecto si no hay imagen"""
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    # Fondo de ciudad simulado
+    ax.set_facecolor('#1a1a2e')
+    
+    # Crear calles principales
+    for i in range(0, 101, 15):
+        ax.plot([i, i], [0, 100], 'w-', alpha=0.4, linewidth=1)
+        ax.plot([0, 100], [i, i], 'w-', alpha=0.4, linewidth=1)
+    
+    # Avenidas principales
+    ax.plot([33, 33], [0, 100], 'y-', alpha=0.6, linewidth=3, label='Av. Principal')
+    ax.plot([66, 66], [0, 100], 'y-', alpha=0.6, linewidth=3)
+    ax.plot([0, 100], [33, 33], 'y-', alpha=0.6, linewidth=3)
+    ax.plot([0, 100], [66, 66], 'y-', alpha=0.6, linewidth=3)
+    
+    # Zonas verdes (parques)
+    parques = [
+        {'x': 20, 'y': 20, 'ancho': 15, 'alto': 15},
+        {'x': 70, 'y': 70, 'ancho': 20, 'alto': 20},
+        {'x': 25, 'y': 70, 'ancho': 12, 'alto': 12}
+    ]
+    
+    for parque in parques:
+        rect = Rectangle((parque['x'], parque['y']), parque['ancho'], parque['alto'],
+                        facecolor='#2e8b57', alpha=0.6, edgecolor='green')
+        ax.add_patch(rect)
+    
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.set_title('Mapa de Ciudad por Defecto', fontsize=14, color='white', pad=20)
+    
+    # Convertir a imagen
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', 
+                facecolor='#1a1a2e', edgecolor='none')
+    buf.seek(0)
+    plt.close(fig)
+    return Image.open(buf)
+
+# Cargar imagen
+imagen_fondo = cargar_imagen_fondo(uploaded_file, use_default)
+
+# Datos de densidad poblacional simulados (basados en coordenadas del mapa)
+datos_densidad = {
+    'centro_urbano': {
+        'nombre': 'Centro Urbano',
+        'poblacion': 350000,
         'densidad': 'Muy Alta',
-        'coordenadas': {'x': 45, 'y': 55, 'radio': 8},
-        'descripcion': 'Zona de edificios históricos y gobierno'
+        'coordenadas': {'x_min': 40, 'x_max': 60, 'y_min': 40, 'y_max': 60},
+        'descripcion': 'Zona central de negocios y comercios'
     },
-    'distrito_financiero': {
-        'nombre': 'Distrito Financiero',
-        'poblacion': 220000,
-        'densidad': 'Muy Alta', 
-        'coordenadas': {'x': 60, 'y': 50, 'radio': 7},
-        'descripcion': 'Rascacielos y oficinas corporativas'
-    },
-    'zona_residencial_norte': {
-        'nombre': 'Residencial Norte',
-        'poblacion': 450000,
+    'norte_residencial': {
+        'nombre': 'Norte Residencial',
+        'poblacion': 280000,
         'densidad': 'Alta',
-        'coordenadas': {'x': 50, 'y': 75, 'radio': 12},
-        'descripcion': 'Área residencial de alta densidad'
+        'coordenadas': {'x_min': 30, 'x_max': 50, 'y_min': 65, 'y_max': 85},
+        'descripcion': 'Área residencial consolidada'
     },
-    'zona_residencial_sur': {
-        'nombre': 'Residencial Sur',
-        'poblacion': 380000,
+    'sur_industrial': {
+        'nombre': 'Sur Industrial',
+        'poblacion': 120000,
         'densidad': 'Media',
-        'coordenadas': {'x': 50, 'y': 25, 'radio': 10},
+        'coordenadas': {'x_min': 20, 'x_max': 40, 'y_min': 10, 'y_max': 30},
+        'descripcion': 'Zona industrial y manufacturera'
+    },
+    'este_comercial': {
+        'nombre': 'Este Comercial',
+        'poblacion': 190000,
+        'densidad': 'Alta',
+        'coordenadas': {'x_min': 60, 'x_max': 80, 'y_min': 50, 'y_max': 70},
+        'descripcion': 'Centros comerciales y servicios'
+    },
+    'oeste_residencial': {
+        'nombre': 'Oeste Residencial',
+        'poblacion': 220000,
+        'densidad': 'Media',
+        'coordenadas': {'x_min': 10, 'x_max': 30, 'y_min': 40, 'y_max': 60},
         'descripcion': 'Zona residencial media'
     },
-    'distrito_industrial': {
-        'nombre': 'Distrito Industrial',
-        'poblacion': 120000,
-        'densidad': 'Baja',
-        'coordenadas': {'x': 75, 'y': 30, 'radio': 9},
-        'descripcion': 'Área industrial y manufacturera'
-    },
-    'centro_comercial': {
-        'nombre': 'Centro Comercial Este',
-        'poblacion': 95000,
-        'densidad': 'Alta',
-        'coordenadas': {'x': 70, 'y': 60, 'radio': 6},
-        'descripcion': 'Comercios y centros comerciales'
-    },
-    'universidad': {
-        'nombre': 'Campus Universitario',
-        'poblacion': 65000,
+    'distrito_universitario': {
+        'nombre': 'Distrito Universitario',
+        'poblacion': 80000,
         'densidad': 'Media',
-        'coordenadas': {'x': 35, 'y': 65, 'radio': 5},
-        'descripcion': 'Área universitaria y de investigación'
+        'coordenadas': {'x_min': 65, 'x_max': 85, 'y_min': 75, 'y_max': 90},
+        'descripcion': 'Campus y áreas académicas'
     },
-    'parque_metropolitano': {
-        'nombre': 'Parque Metropolitano',
-        'poblacion': 15000,
+    'zona_verde_central': {
+        'nombre': 'Parque Central',
+        'poblacion': 5000,
         'densidad': 'Muy Baja',
-        'coordenadas': {'x': 40, 'y': 40, 'radio': 8},
-        'descripcion': 'Área verde y recreativa'
-    },
-    'aeropuerto': {
-        'nombre': 'Zona Aeroportuaria',
-        'poblacion': 25000,
-        'densidad': 'Baja',
-        'coordenadas': {'x': 80, 'y': 70, 'radio': 6},
-        'descripcion': 'Aeropuerto y logística'
+        'coordenadas': {'x_min': 45, 'x_max': 55, 'y_min': 20, 'y_max': 35},
+        'descripcion': 'Área verde metropolitana'
     }
 }
 
 # Puntos de interés críticos
 puntos_criticos = {
     'hospital_central': {'x': 52, 'y': 52, 'nombre': 'Hospital Central', 'tipo': 'hospital'},
-    'ayuntamiento': {'x': 48, 'y': 58, 'nombre': 'Ayuntamiento', 'tipo': 'gobierno'},
-    'estacion_central': {'x': 55, 'y': 48, 'nombre': 'Estación Central', 'tipo': 'transporte'},
-    'plaza_mayor': {'x': 46, 'y': 53, 'nombre': 'Plaza Mayor', 'tipo': 'publico'},
-    'centro_investigacion': {'x': 58, 'y': 62, 'nombre': 'Centro Investigación', 'tipo': 'ciencia'}
+    'ayuntamiento': {'x': 48, 'y': 48, 'nombre': 'Ayuntamiento', 'tipo': 'gobierno'},
+    'estacion_central': {'x': 55, 'y': 45, 'nombre': 'Estación Central', 'tipo': 'transporte'},
+    'centro_comercial': {'x': 62, 'y': 58, 'nombre': 'Mega Centro', 'tipo': 'comercio'},
+    'universidad': {'x': 72, 'y': 80, 'nombre': 'Universidad', 'tipo': 'educacion'}
 }
 
 # Función para crear el asteroide
@@ -195,53 +253,45 @@ def crear_asteroide():
     plt.close(fig)
     return buf
 
-# Función para crear mapa de ciudad
-def crear_mapa_ciudad(mostrar_asteroide=False, pos_asteroide=None, tamaño_asteroide=1):
-    """Crea un mapa de ciudad realista"""
+# Función para crear mapa con imagen de fondo
+def crear_mapa_con_imagen(imagen_fondo, mostrar_asteroide=False, pos_asteroide=None, tamaño_asteroide=1):
+    """Crea un mapa con imagen de fondo y datos de densidad"""
     fig, ax = plt.subplots(figsize=(14, 10))
     
-    # Fondo de ciudad (simulado)
-    ax.set_facecolor('#2c3e50')
+    # Mostrar imagen de fondo
+    ax.imshow(imagen_fondo, extent=[0, 100, 0, 100], alpha=0.7)
     
-    # Dibujar calles principales
-    for i in range(0, 101, 10):
-        ax.plot([i, i], [0, 100], 'w-', alpha=0.3, linewidth=0.5)
-        ax.plot([0, 100], [i, i], 'w-', alpha=0.3, linewidth=0.5)
-    
-    # Calles principales más anchas
-    ax.plot([50, 50], [0, 100], 'y-', alpha=0.5, linewidth=2, label='Avenida Principal')
-    ax.plot([0, 100], [50, 50], 'y-', alpha=0.5, linewidth=2)
-    
-    # Dibujar zonas de población
-    for zona_id, zona in datos_poblacion.items():
-        coord = zona['coordenadas']
+    # Dibujar zonas de densidad poblacional (semi-transparentes)
+    for zona_id, zona in datos_densidad.items():
+        coords = zona['coordenadas']
+        ancho = coords['x_max'] - coords['x_min']
+        alto = coords['y_max'] - coords['y_min']
         
         # Color basado en densidad
         if zona['densidad'] == 'Muy Alta':
             color = '#e74c3c'
-            alpha = 0.7
+            alpha = 0.3
         elif zona['densidad'] == 'Alta':
             color = '#e67e22'
-            alpha = 0.6
+            alpha = 0.25
         elif zona['densidad'] == 'Media':
             color = '#f1c40f'
-            alpha = 0.5
+            alpha = 0.2
         else:
             color = '#27ae60'
-            alpha = 0.4
+            alpha = 0.15
         
-        circle = Circle((coord['x'], coord['y']), coord['radio'],
-                       facecolor=color, alpha=alpha, edgecolor='white', linewidth=1)
-        ax.add_patch(circle)
+        rect = Rectangle((coords['x_min'], coords['y_min']), ancho, alto,
+                        facecolor=color, alpha=alpha, edgecolor=color, linewidth=2)
+        ax.add_patch(rect)
         
         # Etiqueta de la zona
-        ax.text(coord['x'], coord['y'], zona['nombre'], 
-               ha='center', va='center', fontsize=8, weight='bold',
-               bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.8))
+        centro_x = (coords['x_min'] + coords['x_max']) / 2
+        centro_y = (coords['y_min'] + coords['y_max']) / 2
         
-        # Población
-        ax.text(coord['x'], coord['y'] - 2, f"{zona['poblacion']:,} hab.", 
-               ha='center', va='center', fontsize=7, color='white')
+        ax.text(centro_x, centro_y, f"{zona['nombre']}\n{zona['poblacion']:,} hab.", 
+               ha='center', va='center', fontsize=8, weight='bold',
+               bbox=dict(boxstyle="round,pad=0.3", facecolor='white', alpha=0.9))
     
     # Dibujar puntos críticos
     for punto_id, punto in puntos_criticos.items():
@@ -251,15 +301,16 @@ def crear_mapa_ciudad(mostrar_asteroide=False, pos_asteroide=None, tamaño_aster
             marker, color = 's', 'blue'
         elif punto['tipo'] == 'transporte':
             marker, color = '^', 'green'
-        elif punto['tipo'] == 'ciencia':
-            marker, color = 'D', 'purple'
-        else:
+        elif punto['tipo'] == 'comercio':
             marker, color = 'o', 'orange'
+        else:
+            marker, color = 'D', 'purple'
         
         ax.plot(punto['x'], punto['y'], marker=marker, color=color, 
-               markersize=10, markeredgecolor='white', linewidth=1.5)
-        ax.text(punto['x'], punto['y'] + 3, punto['nombre'],
-               ha='center', va='bottom', fontsize=7, weight='bold', color='white')
+               markersize=12, markeredgecolor='white', linewidth=2)
+        ax.text(punto['x'], punto['y'] + 4, punto['nombre'],
+               ha='center', va='bottom', fontsize=7, weight='bold', 
+               bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8))
     
     # Mostrar asteroide si está activado
     if mostrar_asteroide and pos_asteroide:
@@ -280,22 +331,22 @@ def crear_mapa_ciudad(mostrar_asteroide=False, pos_asteroide=None, tamaño_aster
     ax.set_xlim(0, 100)
     ax.set_ylim(0, 100)
     ax.set_aspect('equal')
-    ax.set_title('Mapa de Ciudad Metropolitana - Simulador de Impacto', 
-                fontsize=16, fontweight='bold', pad=20, color='white')
-    ax.set_xlabel('Coordenada X', color='white')
-    ax.set_ylabel('Coordenada Y', color='white')
-    ax.tick_params(colors='white')
+    ax.set_title('Mapa de Ciudad - Simulador de Impacto\n(Zonas de densidad poblacional superpuestas)', 
+                fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Coordenada X')
+    ax.set_ylabel('Coordenada Y')
+    ax.grid(False)
     
     # Leyenda
     legend_elements = [
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#e74c3c', 
-                  markersize=8, label='Densidad Muy Alta'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#e67e22', 
-                  markersize=8, label='Densidad Alta'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#f1c40f', 
-                  markersize=8, label='Densidad Media'),
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='#27ae60', 
-                  markersize=8, label='Densidad Baja'),
+        plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#e74c3c', 
+                  markersize=10, label='Densidad Muy Alta', alpha=0.7),
+        plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#e67e22', 
+                  markersize=10, label='Densidad Alta', alpha=0.7),
+        plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#f1c40f', 
+                  markersize=10, label='Densidad Media', alpha=0.7),
+        plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='#27ae60', 
+                  markersize=10, label='Densidad Baja', alpha=0.7),
         plt.Line2D([0], [0], marker='H', color='w', markerfacecolor='red', 
                   markersize=8, label='Hospital'),
         plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='blue', 
@@ -305,8 +356,7 @@ def crear_mapa_ciudad(mostrar_asteroide=False, pos_asteroide=None, tamaño_aster
     ]
     
     ax.legend(handles=legend_elements, loc='upper right', 
-             bbox_to_anchor=(1.15, 1), facecolor='#34495e', edgecolor='white',
-             labelcolor='white')
+             bbox_to_anchor=(1.15, 1), title="Leyenda")
     
     return fig
 
@@ -355,9 +405,12 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
     zonas_afectadas = {}
     poblacion_total_afectada = 0
     
-    for zona_id, zona in datos_poblacion.items():
-        coord = zona['coordenadas']
-        distancia = np.sqrt((coord['x'] - punto_impacto_x)**2 + (coord['y'] - punto_impacto_y)**2)
+    for zona_id, zona in datos_densidad.items():
+        coords = zona['coordenadas']
+        centro_x = (coords['x_min'] + coords['x_max']) / 2
+        centro_y = (coords['y_min'] + coords['y_max']) / 2
+        
+        distancia = np.sqrt((centro_x - punto_impacto_x)**2 + (centro_y - punto_impacto_y)**2)
         
         # Calcular afectación basada en distancia
         if distancia <= radio_destruccion_total / 10:
@@ -383,7 +436,7 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
         "radio_destruccion_total": radio_destruccion_total,
         "radio_destruccion_parcial": radio_destruccion_parcial,
         "poblacion_total_afectada": poblacion_total_afectada,
-        "zonas_afectadas": zonas_afectadas,  # CORREGIDO: 'zonas_afectadas' no 'zonas_afectados'
+        "zonas_afectadas": zonas_afectadas,
         "punto_impacto": (punto_impacto_x, punto_impacto_y)
     }
 
@@ -391,27 +444,29 @@ def simular_impacto_ciudad(diametro, velocidad, punto_impacto_x, punto_impacto_y
 with st.sidebar:
     st.header("🎮 Controles de Simulación")
     
-    st.subheader(" Asteroide")
+    st.subheader("🌠 Asteroide")
     diametro = st.slider("Diámetro (metros)", 100, 5000, 1000)
     velocidad = st.slider("Velocidad (km/s)", 10, 100, 50)
     
-    st.subheader(" Punto de Impacto")
+    st.subheader("🎯 Punto de Impacto")
     punto_impacto_x = st.slider("Coordenada X", 0, 100, 50)
     punto_impacto_y = st.slider("Coordenada Y", 0, 100, 50)
     
     # Mostrar zona de impacto
     zona_impacto = "Fuera de zonas pobladas"
     min_dist = float('inf')
-    for zona_id, zona in datos_poblacion.items():
-        coord = zona['coordenadas']
-        distancia = np.sqrt((coord['x'] - punto_impacto_x)**2 + (coord['y'] - punto_impacto_y)**2)
+    for zona_id, zona in datos_densidad.items():
+        coords = zona['coordenadas']
+        centro_x = (coords['x_min'] + coords['x_max']) / 2
+        centro_y = (coords['y_min'] + coords['y_max']) / 2
+        distancia = np.sqrt((centro_x - punto_impacto_x)**2 + (centro_y - punto_impacto_y)**2)
         if distancia < min_dist:
             min_dist = distancia
             zona_impacto = zona['nombre']
     
     st.info(f"**Zona más cercana:** {zona_impacto}")
     
-    st.subheader(" Sistemas de Defensa")
+    st.subheader("🛡️ Sistemas de Defensa")
     col1, col2 = st.columns(2)
     with col1:
         defensa_laser = st.checkbox("Láser")
@@ -421,29 +476,29 @@ with st.sidebar:
         escudo_atmosferico = st.checkbox("Escudo")
 
 # Mostrar información de zonas
-st.subheader(" Zonas de la Ciudad")
+st.subheader("🏘️ Zonas de Densidad Poblacional")
 
 cols = st.columns(3)
-for i, (zona_id, zona) in enumerate(datos_poblacion.items()):
+for i, (zona_id, zona) in enumerate(datos_densidad.items()):
     with cols[i % 3]:
         st.markdown(f"""
         <div class="district-card">
-        <h4> {zona['nombre']}</h4>
-        <p> {zona['poblacion']:,} habitantes</p>
-        <p> Densidad: {zona['densidad']}</p>
+        <h4>📍 {zona['nombre']}</h4>
+        <p>👥 {zona['poblacion']:,} habitantes</p>
+        <p>📊 Densidad: {zona['densidad']}</p>
         <p>{zona['descripcion']}</p>
         </div>
         """, unsafe_allow_html=True)
 
-# Mostrar mapa base
-st.subheader(" Mapa de la Ciudad")
-fig_base = crear_mapa_ciudad()
+# Mostrar mapa base con imagen de fondo
+st.subheader("🗺️ Mapa con Imagen de Fondo y Densidad Poblacional")
+fig_base = crear_mapa_con_imagen(imagen_fondo)
 st.pyplot(fig_base)
 
 # Botón de simulación
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    if st.button(" SIMULAR IMPACTO DE ASTEROIDE", use_container_width=True, type="primary"):
+    if st.button("🌠 SIMULAR IMPACTO DE ASTEROIDE", use_container_width=True, type="primary"):
         
         with st.spinner("Calculando trayectoria y impacto..."):
             time.sleep(3)
@@ -460,7 +515,7 @@ with col2:
         
         # Mostrar resultados
         st.markdown("---")
-        st.subheader(" Resultados del Impacto")
+        st.subheader("💥 Resultados del Impacto")
         
         # SECCIÓN DE ENERGÍA
         st.markdown('<div class="energy-section">', unsafe_allow_html=True)
@@ -472,16 +527,16 @@ with col2:
         col_energia1, col_energia2, col_energia3 = st.columns(3)
         
         with col_energia1:
-            st.markdown(f'<div class="energy-metric"> ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">💥 ENERGÍA ORIGINAL</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ff6b6b;">{valor_original} {unidad_original}</div>', unsafe_allow_html=True)
             
         with col_energia2:
-            st.markdown(f'<div class="energy-metric"> ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">🛡️ ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_mitigada} {unidad_mitigada}</div>', unsafe_allow_html=True)
             st.metric("Reducción", f"{resultado['reduccion']:.0f}%")
             
         with col_energia3:
-            st.markdown(f'<div class="energy-metric"> ENERGÍA DE IMPACTO</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="energy-metric">⚡ ENERGÍA DE IMPACTO</div>', unsafe_allow_html=True)
             st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #ffa502;">{valor_impacto} {unidad_impacto}</div>', unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
@@ -492,7 +547,8 @@ with col2:
         # Calcular tamaño del asteroide para visualización
         tamaño_asteroide_visual = min(3.0, diametro / 500)
         
-        fig_impacto = crear_mapa_ciudad(
+        fig_impacto = crear_mapa_con_imagen(
+            imagen_fondo,
             mostrar_asteroide=True,
             pos_asteroide=resultado['punto_impacto'],
             tamaño_asteroide=tamaño_asteroide_visual
@@ -515,17 +571,16 @@ with col2:
                                 label='Zona Daños Parciales')
         ax_impacto.add_patch(impacto_parcial)
         
-        ax_impacto.legend(loc='upper right', bbox_to_anchor=(1.15, 0.8),
-                         facecolor='#34495e', edgecolor='white', labelcolor='white')
+        ax_impacto.legend(loc='upper right', bbox_to_anchor=(1.15, 0.8))
         
         st.pyplot(fig_impacto)
         
-        # Población afectada por zona - CORREGIDO: usar 'zonas_afectadas' no 'zonas_afectados'
+        # Población afectada por zona
         st.subheader("👥 Población Afectada por Zona")
         
         cols_afectados = st.columns(3)
-        for i, (zona_id, datos) in enumerate(resultado['zonas_afectadas'].items()):  # CORREGIDO
-            zona = datos_poblacion[zona_id]
+        for i, (zona_id, datos) in enumerate(resultado['zonas_afectadas'].items()):
+            zona = datos_densidad[zona_id]
             with cols_afectados[i % 3]:
                 st.metric(
                     f"📍 {zona['nombre']}",
@@ -534,14 +589,15 @@ with col2:
                 )
         
         # Evaluación general
-        st.subheader(" Evaluación del Impacto")
+        st.subheader("📈 Evaluación del Impacto")
         
-        porcentaje_poblacion_afectada = (resultado['poblacion_total_afectada'] / 2500000) * 100
+        poblacion_total = sum([zona['poblacion'] for zona in datos_densidad.values()])
+        porcentaje_poblacion_afectada = (resultado['poblacion_total_afectada'] / poblacion_total) * 100
         
         if porcentaje_poblacion_afectada > 40:
             st.markdown("""
             <div class="impact-warning">
-            <h3> CATASTROFE CIVIL COMPLETA</h3>
+            <h3>💥 CATASTROFE CIVIL COMPLETA</h3>
             <p><strong>Impacto:</strong> Apocalíptico - Más del 40% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Consecuencias:</strong> Colapso total de infraestructura y servicios</p>
@@ -552,7 +608,7 @@ with col2:
         elif porcentaje_poblacion_afectada > 20:
             st.markdown("""
             <div class="impact-warning">
-            <h3> CATASTROFE REGIONAL</h3>
+            <h3>⚠️ CATASTROFE REGIONAL</h3>
             <p><strong>Impacto:</strong> Devastador - Entre 20-40% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Consecuencias:</strong> Daños severos en infraestructura crítica</p>
@@ -563,7 +619,7 @@ with col2:
         elif porcentaje_poblacion_afectada > 10:
             st.markdown("""
             <div class="impact-warning">
-            <h3> DESASTRE URBANO MAYOR</h3>
+            <h3>🔶 DESASTRE URBANO MAYOR</h3>
             <p><strong>Impacto:</strong> Grave - Entre 10-20% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Consecuencias:</strong> Daños significativos en áreas específicas</p>
@@ -574,7 +630,7 @@ with col2:
         else:
             st.markdown("""
             <div class="mitigation-success">
-            <h3> IMPACTO CONTROLADO</h3>
+            <h3>✅ IMPACTO CONTROLADO</h3>
             <p><strong>Impacto:</strong> Limitado - Menos del 10% de la población afectada</p>
             <p><strong>Población afectada:</strong> {:,} personas</p>
             <p><strong>Efectividad defensas:</strong> {:.1f}% de reducción</p>
@@ -585,9 +641,10 @@ with col2:
 # Información adicional
 st.markdown("---")
 st.info("""
-** Acerca de esta simulación:**
-- Mapa muestra distribución realista de población en zonas urbanas
+**ℹ️ Acerca de esta simulación:**
+- Sistema permite cargar cualquier imagen de mapa como fondo
+- Las zonas de densidad poblacional se superponen sobre la imagen
 - Los cálculos consideran densidad poblacional y distancia al impacto
 - El asteroide es visible en el mapa durante la simulación
-- Los sistemas de defensa reducen energía entre 10-100% según combinación
+- Coordenadas van de 0 a 100 en ambos ejes para facilitar posicionamiento
 """)
