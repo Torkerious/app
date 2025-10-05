@@ -5,3 +5,4 @@ scipy
 trimesh
 streamlit-3d
 streamlit-3d-model
+pip 
