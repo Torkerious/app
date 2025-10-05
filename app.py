@@ -96,7 +96,7 @@ poblacion_china = {
     'guangdong': {
         'nombre': 'Guangdong',
         'poblacion': 126012,  # en miles (126 millones)
-        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 15, 'y_max': 25},
+        'coordenadas': {'x_min': 80, 'x_max': 95, 'y_min': 10, 'y_max': 20},
         'descripcion': 'Provincia más poblada de China'
     },
     'shandong': {
