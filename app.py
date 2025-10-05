@@ -5,7 +5,7 @@ import base64
 
 # --- Rutas de Archivo ---
 MODELO_STL_PATH = "Earth.stl" 
-TEXTURE_URL = "earth_texture.png" # <--- Usamos URL simple para el PNG (depende de config.toml)
+TEXTURE_URL = "earth_texture.png" 
 
 
 # --- Función para codificar SOLO el STL a Base64 ---
@@ -29,7 +29,7 @@ STL_DATA_URL = get_stl_base64_data_url(MODELO_STL_PATH)
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D: STL (Base64) + Textura (URL Simple) 🌍")
+st.title("Visor 3D: Iluminación Corregida 💡")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -40,10 +40,6 @@ if 'cube_size' not in st.session_state:
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
 def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
-    """
-    Carga el STL (Base64) y la textura (URL) por separado,
-    y aplica la textura al material.
-    """
     if stl_data_url is None: return ""
 
     HTML_CODE = f"""
@@ -67,7 +63,7 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
             const modelURL = '{stl_data_url}';
-            const textureURL = '{texture_url}'; // URL simple: earth_texture.png
+            const textureURL = '{texture_url}'; 
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
             
@@ -84,11 +80,20 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 container.appendChild(renderer.domElement);
 
-                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.9);
+                // --- AJUSTE DE LUZ 1: Aumentar la intensidad ambiente ---
+                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.5); // Incremento de intensidad
                 scene.add(ambientLight);
-                const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.5);
-                directionalLight.position.set(100, 100, 100);
-                scene.add(directionalLight);
+                
+                // --- AJUSTE DE LUZ 2: Luz direccional principal ---
+                const directionalLight1 = new THREE.DirectionalLight(0xFFFFFF, 1.5); // Más intensa
+                directionalLight1.position.set(100, 100, 100);
+                scene.add(directionalLight1);
+                
+                // --- AJUSTE DE LUZ 3: Segunda luz direccional (contraluz) ---
+                const directionalLight2 = new THREE.DirectionalLight(0xFFFFFF, 0.7); // Una luz más suave
+                directionalLight2.position.set(-100, -100, -100); // Desde el lado opuesto
+                scene.add(directionalLight2);
+
 
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.target.set(0, 0, 0); 
@@ -98,6 +103,9 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
 
                 // 1. Cargar Textura con URL simple
                 const texture = textureLoader.load(textureURL, 
+                    function(tex) {{
+                        tex.needsUpdate = true; // Forzar actualización de la textura
+                    }}, 
                     undefined, 
                     function(err) {{
                         console.error('Error al cargar la textura PNG por URL simple. El archivo estático NO es accesible.', err);
@@ -111,16 +119,13 @@ def generate_threejs_viewer(stl_data_url, texture_url, show_cube, cube_size):
                     // Usar material con textura
                     const material = new THREE.MeshPhongMaterial({{ 
                         map: texture, 
-                        side: THREE.DoubleSide 
+                        // --- AJUSTE DE MATERIAL: Probar con FrontSide ---
+                        side: THREE.FrontSide, // Opcionalmente probar THREE.DoubleSide
+                        needsUpdate: true 
                     }}); 
 
                     const mesh = new THREE.Mesh(geometry, material);
                     
-                    // ESTA ES LA CLAVE: Asegurarse de que el modelo tiene UVs si es STL
-                    // El STL no tiene UVs, por lo que Three.js no sabrá dónde poner la textura.
-                    // Para que esto funcione, el modelo DEBE ser OBJ o GLB con UVs. 
-                    // Si insistes en STL, esta parte fallará, y solo verás la esfera sólida.
-
                     const box = new THREE.Box3().setFromObject(mesh);
                     const size = box.getSize(new THREE.Vector3());
                     const maxDim = Math.max(size.x, size.y, size.z);
@@ -189,17 +194,3 @@ components.html(
     height=600,
     scrolling=False
 )
-
-st.markdown("""
----
-### Conclusión Final y Única 📢
-
-**El problema ya no es el código ni la carga del archivo, sino el formato del modelo.**
-
-* El **STL** (que ahora ves) **NO SOPORTA COORDENADAS UV** (el mapa para la textura). Three.js está cargando la textura, pero no sabe dónde ponerla en el STL, por lo que solo muestra el color base.
-* Si deseas ver la textura, **DEBES** usar un modelo **OBJ o GLB** que contenga las coordenadas UV.
-
-**Recomendación:** Busca un modelo de la Tierra en formato **GLB** de tamaño razonable y prueba con la última solución que te proporcioné para el GLB (la que falló, pero ahora que la carga Base64 del STL funciona, podría funcionar para un GLB bien formado).
-
-Si insistes en usar el STL, es **técnicamente imposible** que se vea la textura de manera correcta en el visor de Three.js sin añadir código JavaScript muy complejo para generar las coordenadas UV, lo cual está fuera del alcance de una solución simple. **El cambio de formato es obligatorio.**
-""")
