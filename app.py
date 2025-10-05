@@ -53,11 +53,51 @@ st.markdown("""
         border-radius: 10px;
         margin: 1rem 0;
     }
+    .density-section {
+        background: linear-gradient(45deg, #ff7e5f, #feb47b);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Título principal
 st.markdown('<h1 class="main-header">🌆 Simulador de Impacto en Ciudad</h1>', unsafe_allow_html=True)
+
+# SECCIÓN DE DENSIDAD DE POBLACIÓN
+st.markdown('<div class="density-section">', unsafe_allow_html=True)
+st.subheader("👥 Densidad de Población")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    densidad_poblacion = st.slider(
+        "Nivel de Densidad Poblacional", 
+        min_value=10, 
+        max_value=100, 
+        value=50, 
+        step=5,
+        help="Controla cuántos edificios aparecen en la ciudad. Mayor densidad = más edificios"
+    )
+
+with col2:
+    # Mostrar descripción de la densidad
+    if densidad_poblacion <= 25:
+        st.metric("Tipo de Ciudad", "Zona Rural", delta="Baja densidad")
+        st.info("🏡 Pocos edificios, áreas extensas abiertas")
+    elif densidad_poblacion <= 50:
+        st.metric("Tipo de Ciudad", "Zona Suburbana", delta="Densidad media")
+        st.info("🏘️ Mezcla de edificios y espacios abiertos")
+    elif densidad_poblacion <= 75:
+        st.metric("Tipo de Ciudad", "Zona Urbana", delta="Alta densidad")
+        st.info("🏢 Muchos edificios, ciudad desarrollada")
+    else:
+        st.metric("Tipo de Ciudad", "Metrópolis", delta="Máxima densidad")
+        st.info("🏙️ Ciudad muy densa, muchos rascacielos")
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # SECCIÓN DE CONFIGURACIÓN - MULTIPLICADORES DE ESCALA
 st.markdown('<div class="config-section">', unsafe_allow_html=True)
@@ -105,33 +145,66 @@ posiciones_defensa = [
     {'x': 90, 'y': 10, 'tipo': 'escudo'}
 ]
 
-# Generar mapa de ciudad
-def generar_ciudad():
-    """Genera una ciudad aleatoria con diferentes tipos de edificios"""
+# Generar mapa de ciudad CON DENSIDAD
+def generar_ciudad(densidad):
+    """Genera una ciudad aleatoria con densidad controlada"""
     ciudad = {
         'edificios': [],
         'parques': [],
         'carreteras': [],
         'zonas_residenciales': [],
-        'defensas': posiciones_defensa
+        'defensas': posiciones_defensa,
+        'densidad': densidad
     }
     
+    # Calcular número de edificios basado en densidad (10 a 100 edificios)
+    num_edificios = int(densidad * 0.8)  # 10-80 edificios según densidad
+    num_edificios = max(10, min(80, num_edificios))  # Limitar entre 10 y 80
+    
+    # Calcular número de parques (inversamente proporcional a densidad)
+    num_parques = max(1, 6 - int(densidad / 20))  # 5 parques en baja densidad, 1 en alta
+    
     # Generar edificios (posición x, posición y, tipo, altura)
-    for _ in range(30):
+    for _ in range(num_edificios):
         x = random.uniform(0, 100)
         y = random.uniform(0, 100)
-        tipo = random.choice(['residencial', 'comercial', 'industrial', 'rascacielos'])
-        altura_base = random.uniform(1, 3) if tipo == 'residencial' else random.uniform(2, 4) if tipo == 'comercial' else random.uniform(3, 6) if tipo == 'industrial' else random.uniform(5, 8)
+        
+        # Distribución de tipos según densidad
+        if densidad <= 25:  # Rural
+            tipos = ['residencial'] * 70 + ['comercial'] * 20 + ['industrial'] * 10
+        elif densidad <= 50:  # Suburbana
+            tipos = ['residencial'] * 60 + ['comercial'] * 25 + ['industrial'] * 10 + ['rascacielos'] * 5
+        elif densidad <= 75:  # Urbana
+            tipos = ['residencial'] * 50 + ['comercial'] * 30 + ['industrial'] * 10 + ['rascacielos'] * 10
+        else:  # Metrópolis
+            tipos = ['residencial'] * 40 + ['comercial'] * 30 + ['industrial'] * 10 + ['rascacielos'] * 20
+        
+        tipo = random.choice(tipos)
+        
+        # Alturas según densidad (ciudades densas tienen edificios más altos)
+        factor_altura = 1 + (densidad / 100)  # 1x a 2x según densidad
+        
+        if tipo == 'residencial':
+            altura_base = random.uniform(1, 3) * factor_altura
+        elif tipo == 'comercial':
+            altura_base = random.uniform(2, 4) * factor_altura
+        elif tipo == 'industrial':
+            altura_base = random.uniform(3, 6) * factor_altura
+        else:  # rascacielos
+            altura_base = random.uniform(5, 10) * factor_altura  # Más altos en ciudades densas
+        
         ciudad['edificios'].append({'x': x, 'y': y, 'tipo': tipo, 'altura_base': altura_base})
     
-    # Generar parques
-    for _ in range(4):
+    # Generar parques (menos parques en alta densidad)
+    for _ in range(num_parques):
         x = random.uniform(10, 90)
         y = random.uniform(10, 90)
-        tamaño = random.uniform(5, 15)
+        tamaño_base = random.uniform(5, 15)
+        # Parques más pequeños en alta densidad
+        tamaño = tamaño_base * (1 - (densidad / 200))  
         ciudad['parques'].append({'x': x, 'y': y, 'tamaño': tamaño})
     
-    # Generar carreteras principales
+    # Generar carreteras principales (más carreteras en alta densidad)
     ciudad['carreteras'] = [
         {'x1': 0, 'y1': 25, 'x2': 100, 'y2': 25, 'ancho': 2},
         {'x1': 0, 'y1': 50, 'x2': 100, 'y2': 50, 'ancho': 2},
@@ -140,6 +213,15 @@ def generar_ciudad():
         {'x1': 50, 'y1': 0, 'x2': 50, 'y2': 100, 'ancho': 2},
         {'x1': 75, 'y1': 0, 'x2': 75, 'y2': 100, 'ancho': 2}
     ]
+    
+    # Agregar carreteras adicionales en alta densidad
+    if densidad > 75:
+        ciudad['carreteras'].extend([
+            {'x1': 0, 'y1': 10, 'x2': 100, 'y2': 10, 'ancho': 1.5},
+            {'x1': 0, 'y1': 90, 'x2': 100, 'y2': 90, 'ancho': 1.5},
+            {'x1': 10, 'y1': 0, 'x2': 10, 'y2': 100, 'ancho': 1.5},
+            {'x1': 90, 'y1': 0, 'x2': 90, 'y2': 100, 'ancho': 1.5}
+        ])
     
     return ciudad
 
@@ -206,8 +288,8 @@ def dibujar_icono_defensa(ax, x, y, tipo_defensa, activa):
             fontsize=8, ha='center', va='center', 
             color=color, weight='bold' if activa else 'normal')
 
-# Función de simulación mejorada
-def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_impacto_y, defensas):
+# Función de simulación mejorada CON DENSIDAD
+def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_impacto_y, defensas, densidad):
     # Cálculos del impacto
     masa = diametro ** 3 * 800  # kg/m³ promedio
     energia_joules = 0.5 * masa * (velocidad * 1000) ** 2
@@ -234,7 +316,7 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
     energia_final = energia_megatones * (1 - reduccion)
     
     # Calcular daños a la ciudad
-    ciudad = generar_ciudad()
+    ciudad = generar_ciudad(densidad)
     edificios_destruidos = 0
     edificios_danados = 0
     
@@ -246,7 +328,9 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
         elif distancia <= radio_destruccion_parcial / 100:
             edificios_danados += 1
     
-    poblacion_afectada = (edificios_destruidos * 50 + edificios_danados * 10)  # Estimación simple
+    # Población afectada basada en densidad
+    factor_poblacion = densidad / 50.0  # 0.2x a 2x según densidad
+    poblacion_afectada = int((edificios_destruidos * 50 + edificios_danados * 10) * factor_poblacion)
     
     return {
         "energia_megatones": energia_megatones,
@@ -258,7 +342,8 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
         "edificios_danados": edificios_danados,
         "poblacion_afectada": poblacion_afectada,
         "ciudad": ciudad,
-        "defensas_activas": defensas
+        "defensas_activas": defensas,
+        "densidad_utilizada": densidad
     }
 
 # Sidebar para controles
@@ -306,10 +391,20 @@ with col2:
         }
         
         resultado = simular_impacto_ciudad(diametro, velocidad, angulo_impacto, 
-                                         punto_impacto_x, punto_impacto_y, defensas)
+                                         punto_impacto_x, punto_impacto_y, defensas, densidad_poblacion)
         
         # Mostrar resultados
         st.subheader("📊 Reporte de Impacto Urbano")
+        
+        # Información de densidad
+        col_dens, col_edif, col_pob = st.columns(3)
+        with col_dens:
+            tipo_ciudad = "Rural" if densidad_poblacion <= 25 else "Suburbana" if densidad_poblacion <= 50 else "Urbana" if densidad_poblacion <= 75 else "Metrópolis"
+            st.metric("Tipo de Ciudad", tipo_ciudad)
+        with col_edif:
+            st.metric("Total de Edificios", f"{len(resultado['ciudad']['edificios'])}")
+        with col_pob:
+            st.metric("Densidad Aplicada", f"{densidad_poblacion}%")
         
         # Métricas principales
         col1, col2, col3, col4 = st.columns(4)
@@ -394,7 +489,7 @@ with col2:
         ax.set_xlim(0, 100)
         ax.set_ylim(0, 100)
         ax.set_aspect('equal')
-        ax.set_title('Mapa de la Ciudad - Simulación de Impacto', fontsize=16, fontweight='bold')
+        ax.set_title(f'Mapa de la Ciudad - Densidad: {densidad_poblacion}% - Simulación de Impacto', fontsize=16, fontweight='bold')
         ax.set_xlabel('Coordenada X')
         ax.set_ylabel('Coordenada Y')
         ax.grid(True, alpha=0.3)
@@ -403,18 +498,27 @@ with col2:
         st.pyplot(fig)
         
         # Mostrar configuración aplicada
-        st.info(f"⚙️ **Configuración aplicada:** Ancho × {multiplicador_ancho:.1f}, Altura × {multiplicador_altura:.1f}")
+        col_conf1, col_conf2 = st.columns(2)
+        with col_conf1:
+            st.info(f"⚙️ **Configuración aplicada:** Ancho × {multiplicador_ancho:.1f}, Altura × {multiplicador_altura:.1f}")
+        with col_conf2:
+            st.info(f"👥 **Densidad aplicada:** {densidad_poblacion}% - {tipo_ciudad}")
         
         # Evaluación de resultados
         st.subheader("📈 Evaluación de Daños")
         
-        if resultado['edificios_destruidos'] > 20:
+        # Umbrales ajustados por densidad
+        umbral_catastrofe = 15 + (densidad_poblacion / 10)  # 17 a 25 según densidad
+        umbral_grave = 8 + (densidad_poblacion / 15)        # 9 a 15 según densidad
+        umbral_moderado = 4 + (densidad_poblacion / 20)     # 5 a 9 según densidad
+        
+        if resultado['edificios_destruidos'] > umbral_catastrofe:
             st.markdown('<div class="impact-warning">💥 CATASTROFE URBANA: Impacto devastador con destrucción masiva</div>', unsafe_allow_html=True)
             st.error(f"🚨 Se estiman {resultado['poblacion_afectada']} personas afectadas. Evacuación inmediata requerida.")
-        elif resultado['edificios_destruidos'] > 10:
+        elif resultado['edificios_destruidos'] > umbral_grave:
             st.warning("⚠️ IMPACTO GRAVE: Daños extensos en el área urbana")
             st.info(f"🏥 {resultado['poblacion_afectada']} personas requieren asistencia")
-        elif resultado['edificios_destruidos'] > 5:
+        elif resultado['edificios_destruidos'] > umbral_moderado:
             st.info("🔶 IMPACTO MODERADO: Daños localizados pero manejables")
         else:
             st.markdown('<div class="mitigation-success">✅ IMPACTO CONTROLADO: Las estrategias de mitigación han funcionado efectivamente</div>', unsafe_allow_html=True)
@@ -447,7 +551,7 @@ if resultado is None:
     st.info("🎯 **Instrucciones:** Ajusta los parámetros en el panel lateral y haz clic en 'SIMULAR IMPACTO URBANO' para ver los efectos en la ciudad.")
     
     # Mostrar ciudad de ejemplo
-    ciudad_ejemplo = generar_ciudad()
+    ciudad_ejemplo = generar_ciudad(densidad_poblacion)
     fig_ejemplo, ax_ejemplo = plt.subplots(figsize=(10, 8))
     
     # Dibujar ciudad de ejemplo
@@ -488,7 +592,8 @@ if resultado is None:
     ax_ejemplo.set_xlim(0, 100)
     ax_ejemplo.set_ylim(0, 100)
     ax_ejemplo.set_aspect('equal')
-    ax_ejemplo.set_title('Mapa de la Ciudad - Vista Previa', fontsize=14)
+    tipo_ciudad_ejemplo = "Rural" if densidad_poblacion <= 25 else "Suburbana" if densidad_poblacion <= 50 else "Urbana" if densidad_poblacion <= 75 else "Metrópolis"
+    ax_ejemplo.set_title(f'Vista Previa - Ciudad {tipo_ciudad_ejemplo} (Densidad: {densidad_poblacion}%)', fontsize=14)
     ax_ejemplo.grid(True, alpha=0.3)
     
     st.pyplot(fig_ejemplo)
