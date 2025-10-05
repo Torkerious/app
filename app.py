@@ -158,7 +158,7 @@ def generar_ciudad(densidad):
     }
     
     # Calcular número de edificios basado en densidad (10 a 100 edificios)
-    num_edificios = int(densidad * 0.8)  # 10-80 edificios según densidad
+    num_edificios = int(densidad * 1.2)  # 10-80 edificios según densidad
     num_edificios = max(10, min(80, num_edificios))  # Limitar entre 10 y 80
     
     # Calcular número de parques (inversamente proporcional a densidad)
@@ -330,7 +330,7 @@ def simular_impacto_ciudad(diametro, velocidad, angulo, punto_impacto_x, punto_i
     
     # Población afectada basada en densidad
     factor_poblacion = densidad / 50.0  # 0.2x a 2x según densidad
-    poblacion_afectada = int((edificios_destruidos * 50 + edificios_danados * 10) * factor_poblacion)
+    poblacion_afectada = int((edificios_destruidos * 50 + edificios_danados * 100) * factor_poblacion)
     
     return {
         "energia_megatones": energia_megatones,
