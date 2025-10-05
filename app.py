@@ -495,7 +495,7 @@ with col2:
         valor_original, unidad_original = formatear_energia(resultado['energia_megatones'])
         valor_final, unidad_final = formatear_energia(resultado['energia_final'])
         comparacion, referencia = obtener_comparacion_historica(resultado['energia_megatones'])
-        
+        valor_final = valor_original-valor_final
         col_energia1, col_energia2 = st.columns(2)
         
         with col_energia1:
@@ -505,7 +505,7 @@ with col2:
             
         with col_energia2:
             st.markdown(f'<div class="energy-metric">🛡️ ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
-            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_original - valor_final} {unidad_final}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_final} {unidad_final}</div>', unsafe_allow_html=True)
             st.metric("Reducción Efectiva", f"{resultado['reduccion']:.0f}%")
         
         # Comparación histórica
