@@ -217,37 +217,55 @@ def generar_mapa_china_por_defecto():
     plt.close(fig)
     return Image.open(buf)
 
-# Función para crear el asteroide
-def crear_asteroide():
-    """Crea una imagen de asteroide simple"""
+# Función para crear el meteorito con gradiente
+def crear_meteorito(tamaño):
+    """Crea un círculo con gradiente oscuro para el meteorito"""
     fig, ax = plt.subplots(figsize=(2, 2))
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     
-    # Dibujar asteroide
-    asteroid = Ellipse((0.5, 0.5), 0.8, 0.6, angle=45, 
-                      facecolor='#8B7355', edgecolor='#654321', linewidth=2)
-    ax.add_patch(asteroid)
+    # Crear gradiente radial oscuro
+    from matplotlib.colors import RadialGradient
+    gradient = RadialGradient((0.5, 0.5), 0.8, [
+        (0, '#8B0000'),      # Rojo oscuro en el centro
+        (0.4, '#8B4500'),    # Marrón rojizo
+        (0.7, '#654321'),    # Marrón oscuro
+        (1, '#2F4F4F')       # Gris oscuro en los bordes
+    ])
     
-    # Detalles de crateres
-    for i in range(5):
-        x, y = np.random.uniform(0.2, 0.8, 2)
-        size = np.random.uniform(0.05, 0.15)
-        crater = Circle((x, y), size, facecolor='#6B5B45', alpha=0.7)
-        ax.add_patch(crater)
+    # Dibujar meteorito como círculo con gradiente
+    meteorito = Circle((0.5, 0.5), 0.4, 
+                      facecolor=gradient, 
+                      edgecolor='#000000', 
+                      linewidth=2,
+                      alpha=0.9)
+    ax.add_patch(meteorito)
+    
+    # Efecto de brillo interno
+    brillo = Circle((0.3, 0.3), 0.1, 
+                   facecolor='#FF4500', 
+                   alpha=0.6)
+    ax.add_patch(brillo)
+    
+    # Efecto de estela
+    for i in range(3):
+        estela = Ellipse((0.8 - i*0.1, 0.5), 0.15, 0.08, angle=30,
+                        facecolor='#FF8C00', alpha=0.4 - i*0.1)
+        ax.add_patch(estela)
     
     ax.set_aspect('equal')
     ax.axis('off')
     
     # Convertir a imagen
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', pad_inches=0)
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', pad_inches=0,
+                facecolor='none', transparent=True)
     buf.seek(0)
     plt.close(fig)
     return buf
 
 # Función para crear mapa de China
-def crear_mapa_china(imagen_china, mostrar_asteroide=False, pos_asteroide=None, tamaño_asteroide=1):
+def crear_mapa_china(imagen_china, mostrar_meteorito=False, pos_impacto=None, tamaño_meteorito=1):
     """Crea un mapa de China con provincias y puntos críticos"""
     fig, ax = plt.subplots(figsize=(10, 8))  # Relación 5:4
     
@@ -307,20 +325,30 @@ def crear_mapa_china(imagen_china, mostrar_asteroide=False, pos_asteroide=None, 
                ha='center', va='bottom', fontsize=7, weight='bold', 
                bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8))
     
-    # Mostrar asteroide si está activado
-    if mostrar_asteroide and pos_asteroide:
-        asteroid_img = crear_asteroide()
-        img = plt.imread(asteroid_img)
+    # Mostrar meteorito si está activado
+    if mostrar_meteorito and pos_impacto:
+        # Calcular posición del meteorito (20 unidades más arriba del punto de impacto)
+        pos_meteorito_x = pos_impacto[0]
+        pos_meteorito_y = min(45, pos_impacto[1] + 20)  # 20 unidades más arriba, limitado al borde superior
         
-        imagebox = OffsetImage(img, zoom=tamaño_asteroide * 0.1)
-        ab = AnnotationBbox(imagebox, (pos_asteroide[0], pos_asteroide[1]), 
+        # Crear y mostrar meteorito
+        meteorito_img = crear_meteorito(tamaño_meteorito)
+        img = plt.imread(meteorito_img)
+        
+        imagebox = OffsetImage(img, zoom=tamaño_meteorito * 0.08)
+        ab = AnnotationBbox(imagebox, (pos_meteorito_x, pos_meteorito_y), 
                            frameon=False, pad=0)
         ax.add_artist(ab)
         
-        # Trayectoria del asteroide
-        ax.plot([pos_asteroide[0], pos_asteroide[0]], 
-               [45, pos_asteroide[1]], 'r--', alpha=0.7, linewidth=2,
-               label='Trayectoria Asteroide')
+        # Trayectoria del meteorito desde la posición actual hasta el punto de impacto
+        ax.plot([pos_meteorito_x, pos_impacto[0]], 
+               [pos_meteorito_y, pos_impacto[1]], 'r--', alpha=0.7, linewidth=2,
+               label='Trayectoria Meteorito')
+        
+        # Punto de impacto marcado
+        ax.plot(pos_impacto[0], pos_impacto[1], 'X', color='red', 
+               markersize=15, markeredgecolor='white', linewidth=2,
+               label='Punto de Impacto')
     
     # Configuración del mapa
     ax.set_xlim(50, 120)
@@ -444,7 +472,7 @@ imagen_china = cargar_imagen_china()
 with st.sidebar:
     st.header("Controles de Simulación")
     
-    st.subheader("Asteroide")
+    st.subheader("Meteorito")
     diametro = st.slider("Diámetro (metros)", 100, 5000, 1000)
     velocidad = st.slider("Velocidad (km/s)", 10, 100, 50)
     
@@ -541,17 +569,17 @@ with col2:
         
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Mapa con impacto y asteroide
+        # Mapa con impacto y meteorito
         st.subheader("Mapa con Simulación de Impacto")
         
-        # Calcular tamaño del asteroide para visualización
-        tamaño_asteroide_visual = min(3.0, diametro / 500)
+        # Calcular tamaño del meteorito para visualización
+        tamaño_meteorito_visual = min(3.0, diametro / 500)
         
         fig_impacto = crear_mapa_china(
             imagen_china,
-            mostrar_asteroide=True,
-            pos_asteroide=resultado['punto_impacto'],
-            tamaño_asteroide=tamaño_asteroide_visual
+            mostrar_meteorito=True,
+            pos_impacto=resultado['punto_impacto'],
+            tamaño_meteorito=tamaño_meteorito_visual
         )
         
         # Dibujar zonas de impacto en el mapa
@@ -671,7 +699,7 @@ st.info("""
 - Sistema basado en datos reales de población de China
 - Las provincias se muestran con colores según densidad poblacional
 - Los cálculos consideran población real y distancia al impacto
-- El asteroide es visible en el mapa durante la simulación
+- El meteorito se muestra como un círculo con gradiente oscuro 20 unidades arriba del impacto
 - Coordenadas representan posición aproximada en el mapa de China
 - Población total considerada: ~847 millones (10 provincias principales)
 - Relación de aspecto del mapa: 5:4
