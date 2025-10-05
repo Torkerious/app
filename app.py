@@ -2,9 +2,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 import os
 
-# --- Configuración de Rutas de Archivo (Referenciando a la Raíz) ---
+# --- Configuración de Rutas de Archivo (En la Raíz) ---
 
-# Rutas locales (solo para la verificación de existencia en Python)
+# Rutas locales (para verificación)
 MODELO_STL_PATH = "Earth.stl" 
 TEXTURA_PATH = "earth_texture.jpg" 
 
@@ -17,7 +17,6 @@ TEXTURE_URL = "earth_texture.jpg"
 st.set_page_config(layout="wide")
 st.title("Visor 3D con Textura (Three.js/HTML) 🌎")
 
-# Estado para controlar la adición de objetos de experimentación
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
 if 'cube_size' not in st.session_state:
@@ -28,9 +27,9 @@ if 'cube_size' not in st.session_state:
 
 def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
     """
-    Genera el código HTML/JS que configura el visor Three.js.
+    Genera el código HTML/JS que configura el visor Three.js con ajustes 
+    de cámara para asegurar la visibilidad de los elementos de experimentación.
     """
-    # Verificación de archivos en Python (solo para dar un error descriptivo)
     if not os.path.exists(MODELO_STL_PATH) or not os.path.exists(TEXTURA_PATH):
         return f"""
             <p style='color:red;'>
@@ -40,7 +39,6 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
             </p>
         """
     
-    # El JavaScript está contenido en la variable HTML_CODE
     HTML_CODE = f"""
     <!DOCTYPE html>
     <html>
@@ -48,11 +46,12 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
         <title>Three.js STL Viewer</title>
         <style>
             body {{ margin: 0; }}
-            canvas {{ display: block; }}
+            /* Asegura que el contenedor tiene dimensiones */
+            #container {{ width: 100%; height: 600px; }} 
         </style>
     </head>
     <body>
-        <div id="container" style="width: 100%; height: 600px;"></div>
+        <div id="container"></div>
         
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -62,18 +61,22 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
             // --- Configuración de la Escena ---
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
-            const modelURL = '{model_url}'; // Referencia directa a Earth.stl
-            const textureURL = '{texture_url}'; // Referencia directa a earth_texture.jpg
+            const modelURL = '{model_url}';
+            const textureURL = '{texture_url}';
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
+            
+            // Posición de cámara de FALLBACK para que los elementos pequeños sean visibles
+            const FALLBACK_CAMERA_POSITION = new THREE.Vector3(150, 0, 0);
 
             function init() {{
                 // 1. Scene
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color(0xFFFFFF); 
+                scene.background = new THREE.Color(0xFFFFFF);
 
-                // 2. Camera
+                // 2. Camera (se posiciona en el fallback por defecto)
                 camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 10000);
+                camera.position.copy(FALLBACK_CAMERA_POSITION);
                 
                 // 3. Renderer
                 renderer = new THREE.WebGLRenderer({{ antialias: true }});
@@ -89,6 +92,7 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
 
                 // 5. Controls
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.target.set(0, 0, 0); // Fija el objetivo en el origen
                 
                 // 6. Loaders
                 const textureLoader = new THREE.TextureLoader();
@@ -109,41 +113,43 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
 
                         const mesh = new THREE.Mesh(geometry, material);
                         
-                        // Ajuste de escala (importante para STL)
+                        // Ajuste de escala para el modelo (esto es lo que cambia la cámara)
                         const box = new THREE.Box3().setFromObject(mesh);
                         const size = box.getSize(new THREE.Vector3());
                         const maxDim = Math.max(size.x, size.y, size.z);
-                        const scale = 100 / maxDim; // Escalar para que el modelo tenga un tamaño razonable (100 unidades)
+                        const scale = 100 / maxDim;
                         mesh.scale.set(scale, scale, scale);
                         
                         scene.add(mesh);
                         
-                        // Posicionar la cámara
+                        // Ajustar la cámara al tamaño del modelo cargado (solo si se carga)
                         camera.position.set(maxDim * scale * 1.5, 0, 0); 
                         controls.update();
                         
                     }}, undefined, function(error) {{
-                        console.error('Error al cargar el STL:', error);
-                        // Fallback: Mostrar cubo azul si la Tierra falla en cargar
+                        console.error('Error al cargar el STL. Comprobando la ruta:', error);
+                        // Si falla la carga del modelo principal, mantendrá la posición de FALLBACK
                     }});
                 }}, undefined, function(error) {{
-                     console.error('Error al cargar la textura:', error);
-                     // Fallback: Si la textura falla, intentar cargar el STL con un color plano
+                     console.error('Error al cargar la textura. Intentando cargar el STL con color plano.', error);
+                     // Si la textura falla, intentar cargar el STL con un color plano
                      stlLoader.load(modelURL, function(geometry) {{
                          geometry.center(); 
                          const material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6 }}); 
                          const mesh = new THREE.Mesh(geometry, material);
                          scene.add(mesh);
+                         // NO ajustar la cámara aquí para mantener la posición de FALLBACK
                      }});
                 }});
 
                 // --- Elemento de Experimentación (Cubo) ---
                 if (showCube) {{
                     const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-                    // Colocar el cubo al lado de la esfera de la Tierra para la experimentación
                     const cubeMaterial = new THREE.MeshBasicMaterial({{ color: 0x0000FF, transparent: true, opacity: 0.7 }});
                     const cube = new THREE.Mesh(geometry, cubeMaterial);
-                    cube.position.set(cubeSize * 3, 0, 0); 
+                    
+                    // Posicionamos el cubo lejos del centro, en un punto visible en el espacio de FALLBACK
+                    cube.position.set(50, 50, 0); 
                     scene.add(cube);
                 }}
 
@@ -156,7 +162,6 @@ def generate_threejs_viewer(model_url, texture_url, show_cube, cube_size):
                 renderer.render(scene, camera);
             }}
             
-            // Lógica de redimensionamiento
             function onWindowResize() {{
                 camera.aspect = container.clientWidth / container.clientHeight;
                 camera.updateProjectionMatrix();
@@ -193,5 +198,5 @@ components.html(
 
 st.markdown("""
 ---
-**Nota:** Este visor usa **HTML/JavaScript (Three.js)**. Si el modelo de la Tierra sigue sin aparecer, el problema es que el servidor de Streamlit (o tu entorno) está bloqueando el acceso HTTP a los archivos estáticos. 
+**Nota:** El código ahora utiliza una **posición de cámara de *fallback*** (150 unidades de distancia) y coloca el cubo en la posición (50, 50, 0). Esto asegura que el cubo es visible incluso si el modelo principal de la Tierra falla en cargar.
 """)
