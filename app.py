@@ -1,37 +1,14 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import os
-import base64
 
-# --- Configuración de Rutas de Archivo (OBJ/PNG) ---
-MODELO_OBJ_PATH = "Earth.obj" 
-TEXTURA_PATH = "earth_texture.png" 
-
-
-# --- Función para codificar archivos a Base64 ---
-
-def get_base64_data_url(file_path, mime_type):
-    """Codifica un archivo a una URL de datos Base64."""
-    if not os.path.exists(file_path):
-        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró.")
-        return None
-    try:
-        with open(file_path, 'rb') as f:
-            file_bytes = f.read()
-            encoded = base64.b64encode(file_bytes).decode()
-            return f"data:{mime_type};base64,{encoded}"
-    except Exception as e:
-        st.error(f"❌ Error al codificar {file_path} a Base64: {e}")
-        return None
-
-# Generar las URLs Base64 Data
-OBJ_DATA_URL = get_base64_data_url(MODELO_OBJ_PATH, 'text/plain')
-TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png')
+# --- Rutas de Archivo Simples (Dependen de la configuración de server) ---
+OBJ_URL = "Earth.obj" 
+TEXTURE_URL = "earth_texture.png" 
 
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D Final: Emergencia OBJ/PNG 🚨")
+st.title("Visor 3D Final: Archivos Estáticos 🌍")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -41,13 +18,10 @@ if 'cube_size' not in st.session_state:
 
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
-def generate_threejs_viewer(obj_data_url, texture_data_url, show_cube, cube_size):
+def generate_threejs_viewer(obj_url, texture_url, show_cube, cube_size):
     """
-    Usa la estrategia de carga OBJ y aplica la textura PNG por separado.
+    Usa la estrategia de carga OBJ y aplica la textura PNG por URL simple.
     """
-    if obj_data_url is None: return ""
-    texture_url_final = texture_data_url if texture_data_url is not None else ""
-
     HTML_CODE = f"""
     <!DOCTYPE html>
     <html>
@@ -64,13 +38,12 @@ def generate_threejs_viewer(obj_data_url, texture_data_url, show_cube, cube_size
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/MTLLoader.js"></script>
-
+        
         <script>
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
-            const objURL = '{obj_data_url}';
-            const textureURL = '{texture_url_final}'; 
+            const objURL = '{obj_url}';
+            const textureURL = '{texture_url}'; 
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
             
@@ -99,11 +72,11 @@ def generate_threejs_viewer(obj_data_url, texture_data_url, show_cube, cube_size
                 const textureLoader = new THREE.TextureLoader();
                 const objLoader = new THREE.OBJLoader();
                 
-                // 1. Cargar Textura
+                // 1. Cargar Textura con URL directa
                 const texture = textureLoader.load(textureURL, 
                     undefined, 
                     function(err) {{
-                        console.error('Error al cargar la textura PNG.', err);
+                        console.error('Error al cargar la textura PNG por URL. Usando color plano.', err);
                     }}
                 );
                 
@@ -138,7 +111,7 @@ def generate_threejs_viewer(obj_data_url, texture_data_url, show_cube, cube_size
                     controls.update();
                     
                 }}, undefined, function(error) {{
-                    console.error('Error CRÍTICO al cargar el OBJ (Base64).', error);
+                    console.error('Error CRÍTICO al cargar el OBJ por URL simple.', error);
                 }});
 
 
@@ -187,7 +160,7 @@ else:
     st.session_state.show_cube = False
 
 
-html_code = generate_threejs_viewer(OBJ_DATA_URL, TEXTURE_DATA_URL, st.session_state.show_cube, st.session_state.cube_size)
+html_code = generate_threejs_viewer(OBJ_URL, TEXTURE_URL, st.session_state.show_cube, st.session_state.cube_size)
 
 components.html(
     html_code,
