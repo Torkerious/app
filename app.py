@@ -74,7 +74,7 @@ def load_glb_for_plotly(file_path):
                 k=mesh.faces[:, 2],
                 color='lightgray', # El color es genérico ya que las texturas se pierden
                 opacity=0.7,
-                name="tierra.glb",
+                name="Earth.stl",
             )
         return trace
     except Exception as e:
