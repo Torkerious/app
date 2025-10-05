@@ -40,7 +40,7 @@ img_array = np.flipud(img_array)
 surfacecolor = np.mean(img_array[:, :, :3], axis=2)
 
 # Asegurar que surfacecolor tenga la misma forma que x, y, z
-surfacecolor = surfacecolor[:theta.shape[0], :theta.shape[2]]
+surfacecolor = surfacecolor[:theta.shape[0], :phi.shape[1]]
 
 # Coordenadas esféricas para la Tierra
 theta = np.linspace(0, np.pi, 100)
