@@ -6,11 +6,12 @@ import os
 
 # --- Configuración de Ruta de Archivo ---
 MODELOS_DIR = "modelos3d"
-MODELO_PATH = os.path.join(MODELOS_DIR, "Earth.stl")
+# Cambiamos a Earth.stl
+MODELO_PATH = os.path.join(MODELOS_DIR, "Earth.stl") 
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Laboratorio 3D: Carga de GLB y Experimentación con Plotly 🌍")
+st.title("Laboratorio 3D: Carga de Earth.stl y Experimentación con Plotly 🌎")
 
 # Inicializar estado para trazas adicionales
 if 'additional_traces' not in st.session_state:
@@ -47,18 +48,19 @@ def crear_esfera(radio=8, color='red', center=(20, 20, 20)):
         opacity=0.9, name=f'Esfera {radio}'
     )
 
-# --- 3. Función de Carga del Modelo GLB ---
+# --- 3. Función de Carga del Modelo STL ---
 
-def load_glb_for_plotly(file_path):
-    """Carga GLB, lo convierte en una malla Plotly (go.Mesh3d)."""
+def load_stl_for_plotly(file_path):
+    """Carga STL, lo convierte en una malla Plotly (go.Mesh3d)."""
     if not os.path.exists(file_path):
-        st.error(f"❌ ¡ERROR! El archivo '{file_path}' no se encontró. Asegúrate de la ruta y nombre.")
+        st.error(f"❌ ¡ERROR! El archivo '{file_path}' no se encontró. Asegúrate de que la carpeta 'modelos3d' contiene 'Earth.stl'.")
         return None
     
     try:
         with st.spinner(f"Procesando {os.path.basename(file_path)}..."):
-            # Cargar el modelo GLB
-            mesh = trimesh.load_mesh(file_path, file_type='glb')
+            # Cargar el modelo STL
+            # No necesitamos especificar file_type, trimesh lo detecta
+            mesh = trimesh.load_mesh(file_path)
 
             if isinstance(mesh, trimesh.Scene):
                 # Combinar todas las mallas en una sola para Plotly
@@ -72,19 +74,18 @@ def load_glb_for_plotly(file_path):
                 i=mesh.faces[:, 0], 
                 j=mesh.faces[:, 1], 
                 k=mesh.faces[:, 2],
-                color='lightgray', # El color es genérico ya que las texturas se pierden
+                color='lightblue', # Color base para el STL
                 opacity=0.7,
                 name="Earth.stl",
             )
         return trace
     except Exception as e:
-        st.error(f"❌ Error al procesar el archivo GLB con trimesh: {e}")
-        st.info("Sugerencia: Si el GLB es muy complejo, intenta con un formato .stl o .obj simple.")
+        st.error(f"❌ Error al procesar el archivo STL con trimesh: {e}")
         return None
 
 # --- 4. Carga del Modelo Principal y Creación de la Figura ---
 
-main_trace = load_glb_for_plotly(MODELO_PATH)
+main_trace = load_stl_for_plotly(MODELO_PATH)
 fig = go.Figure()
 model_loaded = False
 
@@ -124,14 +125,17 @@ for trace in st.session_state.additional_traces:
     fig.add_trace(trace)
 
 if model_loaded or st.session_state.additional_traces:
-    # Configuración del Layout de la escena 3D
+    # Obtener el rango de los ejes para centrar el modelo
+    # Este paso es importante ya que los modelos STL/GLB pueden tener rangos muy grandes.
+    # Si el modelo cargado es muy grande, Plotly lo centrará automáticamente.
+    
     fig.update_layout(
         scene=dict(
             xaxis=dict(title='X'),
             yaxis=dict(title='Y'),
             zaxis=dict(title='Z'),
-            # Mantiene las proporciones de los modelos
-            aspectmode='data'
+            # Mantiene las proporciones del mundo real
+            aspectmode='data' 
         ),
         margin=dict(l=0, r=0, b=0, t=30),
         template='plotly_white',
@@ -148,4 +152,4 @@ if model_loaded or st.session_state.additional_traces:
     * **Panorámica (Mover):** Clic derecho y arrastrar.
     """)
 else:
-    st.warning("No hay modelos para mostrar. Sube un archivo 'tierra.glb' o añade un elemento de experimentación.")
+    st.warning(f"No hay modelos para mostrar. Asegúrate de que el archivo 'Earth.stl' está en la carpeta '{MODELOS_DIR}'.")
