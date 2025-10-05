@@ -3,36 +3,33 @@ import streamlit.components.v1 as components
 import os
 import base64
 
-# --- Configuración de Rutas de Archivo (AJUSTADO PARA PNG) ---
-MODELO_STL_PATH = "Earth.stl" 
-TEXTURA_PATH = "earth_texture.png" # <--- CAMBIO DE .jpg A .png
+# --- Configuración de Rutas de Archivo (GLB) ---
+MODELO_GLB_PATH = "Earth.glb" 
 
-
-# --- Función para codificar archivos a Base64 ---
+# --- Función para codificar archivo a Base64 ---
 
 def get_base64_data_url(file_path, mime_type):
     """Codifica un archivo a una URL de datos Base64."""
     if not os.path.exists(file_path):
-        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró.")
+        st.error(f"❌ ¡CRÍTICO! El archivo '{file_path}' no se encontró. Asegúrate de que 'Earth.glb' está en la carpeta raíz.")
         return None
     try:
         with open(file_path, 'rb') as f:
             file_bytes = f.read()
             encoded = base64.b64encode(file_bytes).decode()
+            # El tipo MIME para GLB es crucial: model/gltf-binary
             return f"data:{mime_type};base64,{encoded}"
     except Exception as e:
         st.error(f"❌ Error al codificar {file_path} a Base64: {e}")
         return None
 
-# Generar las URLs Base64 Data
-STL_DATA_URL = get_base64_data_url(MODELO_STL_PATH, 'application/vnd.ms-pki.stl')
-# --- CORRECCIÓN FINAL: Usando MIME Type para PNG ---
-TEXTURE_DATA_URL = get_base64_data_url(TEXTURA_PATH, 'image/png') 
+# Generar la URL Base64 Data para el GLB
+GLB_DATA_URL = get_base64_data_url(MODELO_GLB_PATH, 'model/gltf-binary')
 
 
 # --- 1. Configuración de Streamlit y Estado ---
 st.set_page_config(layout="wide")
-st.title("Visor 3D con Textura (Base64 y PNG) 🌎")
+st.title("Visor 3D Final (GLB/Base64) 🌍")
 
 if 'show_cube' not in st.session_state:
     st.session_state.show_cube = False
@@ -42,18 +39,17 @@ if 'cube_size' not in st.session_state:
 
 # --- 2. HTML y JavaScript para el Visor 3D (Three.js) ---
 
-def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_size):
+def generate_threejs_viewer(glb_data_url, show_cube, cube_size):
     """
-    Genera el código HTML/JS, inyectando el modelo y la textura como URLs Base64.
+    Genera el código HTML/JS, usando el GLTFLoader para cargar el modelo.
     """
-    if model_data_url is None: return ""
-    texture_url_final = texture_data_url if texture_data_url is not None else ""
+    if glb_data_url is None: return ""
 
     HTML_CODE = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Three.js STL Viewer</title>
+        <title>Three.js GLB Viewer</title>
         <style>
             body {{ margin: 0; }}
             #container {{ width: 100%; height: 600px; }} 
@@ -64,13 +60,12 @@ def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_si
         
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
         <script>
             let scene, camera, renderer, controls;
             const container = document.getElementById('container');
-            const modelURL = '{model_data_url}';
-            const textureURL = '{texture_url_final}'; 
+            const modelURL = '{glb_data_url}';
             const showCube = {str(show_cube).lower()};
             const cubeSize = {cube_size};
             
@@ -87,60 +82,44 @@ def generate_threejs_viewer(model_data_url, texture_data_url, show_cube, cube_si
                 renderer.setSize(container.clientWidth, container.clientHeight);
                 container.appendChild(renderer.domElement);
 
-                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.9);
+                const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
                 scene.add(ambientLight);
-                const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.5);
+                
+                // Luz direccional fuerte para modelos PBR (como los GLB)
+                const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 2.0);
                 directionalLight.position.set(100, 100, 100);
                 scene.add(directionalLight);
+
 
                 controls = new THREE.OrbitControls(camera, renderer.domElement);
                 controls.target.set(0, 0, 0); 
                 
-                const textureLoader = new THREE.TextureLoader();
-                const stlLoader = new THREE.STLLoader();
+                // Usamos el GLTFLoader
+                const loader = new THREE.GLTFLoader();
 
-                // --- Función de Carga Principal ---
-                function loadEarth(geometry, useTexture) {{
-                    geometry.center(); 
+                // Iniciar la carga del GLB
+                loader.load(modelURL, function(gltf) {{
+                    const object = gltf.scene;
                     
-                    let material;
-                    
-                    if (useTexture && textureURL) {{
-                        const texture = textureLoader.load(textureURL, 
-                            undefined, 
-                            function(err) {{
-                                console.error('Error Three.js: Textura PNG falló. Usando color plano.', err);
-                            }}
-                        );
-                        
-                        material = new THREE.MeshPhongMaterial({{
-                            map: texture,
-                            shininess: 10,
-                            side: THREE.DoubleSide
-                        }});
-                    }} else {{
-                        material = new THREE.MeshPhongMaterial({{ color: 0xADD8E6 }}); 
-                    }}
-
-                    const mesh = new THREE.Mesh(geometry, material);
-                    
-                    const box = new THREE.Box3().setFromObject(mesh);
+                    // Centrar la geometría
+                    const box = new THREE.Box3().setFromObject(object);
                     const size = box.getSize(new THREE.Vector3());
                     const maxDim = Math.max(size.x, size.y, size.z);
                     const scale = 100 / maxDim;
-                    mesh.scale.set(scale, scale, scale);
+                    object.scale.set(scale, scale, scale);
                     
-                    scene.add(mesh);
+                    // Mover el objeto al centro
+                    box.getCenter(object.position).multiplyScalar(-1);
                     
+                    scene.add(object);
+                    
+                    // Ajustar la cámara al tamaño del modelo
                     camera.position.set(maxDim * scale * 1.5, 0, 0); 
                     controls.update();
-                }}
 
-                // Iniciar la carga del STL
-                stlLoader.load(modelURL, function(geometry) {{
-                    loadEarth(geometry, true); 
                 }}, undefined, function(error) {{
-                    console.error('Error CRÍTICO al cargar el STL (Base64).', error);
+                    console.error('Error CRÍTICO al cargar el GLB (Base64).', error);
+                    // Si falla, el problema es que el archivo GLB está dañado o es demasiado grande.
                 }});
                 
 
@@ -189,7 +168,7 @@ else:
     st.session_state.show_cube = False
 
 
-html_code = generate_threejs_viewer(STL_DATA_URL, TEXTURE_DATA_URL, st.session_state.show_cube, st.session_state.cube_size)
+html_code = generate_threejs_viewer(GLB_DATA_URL, st.session_state.show_cube, st.session_state.cube_size)
 
 components.html(
     html_code,
@@ -199,12 +178,9 @@ components.html(
 
 st.markdown("""
 ---
-### Diagnóstico Final 🎯
+### ¡Instrucciones Finales para GLB! ✨
 
-El código está ahora configurado con la solución **Base64** y el **Tipo MIME `image/png`** para la textura.
-
-* Si la esfera de la Tierra **aún es sólida**, significa que el archivo **`earth_texture.png`** (a pesar de su nombre) está **dañado** o su codificación interna es incorrecta.
-* **No hay más fallas de código** o de ruta posibles. El problema es puramente la **integridad de tu archivo PNG de textura**.
-
-**Último Paso:** Si no funciona, por favor, abre el archivo `earth_texture.png` en un editor de imágenes y **guárdalo de nuevo** (asegúrate de que el tamaño del archivo no sea de 0 bytes). Vuelve a ejecutar la aplicación.
+1.  **Asegúrate de que el modelo se llama `Earth.glb`** y está en la misma carpeta que `app.py`.
+2.  El formato **GLB** incluye la textura y los UVs, lo que elimina el problema de la textura que desaparece.
+3.  Si la Tierra **no aparece**, el archivo `Earth.glb` es probablemente **demasiado grande** para la inyección Base64. Deberías intentar alojarlo en un servicio de hosting externo y usar la URL directa, aunque esa técnica falló con las rutas locales.
 """)
