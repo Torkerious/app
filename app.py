@@ -505,7 +505,7 @@ with col2:
             
         with col_energia2:
             st.markdown(f'<div class="energy-metric">🛡️ ENERGÍA MITIGADA</div>', unsafe_allow_html=True)
-            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_final} {unidad_final}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size: 3rem; font-weight: bold; color: #0be881;">{valor_original - valor_final} {unidad_final}</div>', unsafe_allow_html=True)
             st.metric("Reducción Efectiva", f"{resultado['reduccion']:.0f}%")
         
         # Comparación histórica
